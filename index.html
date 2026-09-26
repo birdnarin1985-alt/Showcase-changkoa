@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CMRU Math Lab - Interactive 3D Calculus & Vector Engine</title>
+  <style>
+    :root {
+      --bg: #04080f;
+      --panel: #0a111e;
+      --panel-border: #16263d;
+      --text: #e2eafc;
+      --muted: #6b829d;
+      --theme: #00f0ff;
+      --laser-amber: #ffb703;
+      --laser-red: #ff4d4d;
+      --laser-green: #52b788;
+      --phi: 1.618;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Courier New", monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding-bottom: 24px;
+      overflow-x: hidden;
+    }
+
+    header {
+      width: 100%;
+      max-width: 540px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--panel-border);
+      background: rgba(10, 17, 30, 0.92);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .badge-uni {
+      font-size: 9.5px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--theme);
+      color: var(--theme);
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      font-family: monospace;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 540px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* สลับ 6 โมเดลแคลคูลัส */
+    .model-switch {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 3px;
+    }
+    .switch-btn {
+      height: 42px;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      color: var(--muted);
+      border-radius: 5px;
+      font-size: 8px;
+      font-weight: bold;
+      font-family: monospace;
+      cursor: pointer;
+      transition: 0.2s;
+      padding: 2px 1px;
+      line-height: 1.2;
+      text-align: center;
+    }
+    .switch-btn.active {
+      border-color: var(--theme);
+      color: #fff;
+      background: rgba(0, 240, 255, 0.08);
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
+    }
+
+    /* 3D Viewport: Golden Ratio (Width / 1.618) */
+    .cad-viewport {
+      width: 100%;
+      aspect-ratio: 1.618 / 1;
+      background: #02050a;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 35px rgba(0,0,0,0.95);
+      touch-action: none;
+    }
+    svg#cadStage {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* กล่องแสดงสูตรและแนวคิดแคลคูลัสสดบน Viewport */
+    .math-hud-overlay {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .formula-card {
+      background: rgba(4, 8, 15, 0.88);
+      border: 1px solid var(--panel-border);
+      border-left: 2px solid var(--theme);
+      border-radius: 4px;
+      padding: 5px 8px;
+      font-size: 9.5px;
+      font-family: "Courier New", Courier, monospace;
+      backdrop-filter: blur(4px);
+    }
+    .formula-title {
+      font-size: 8px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 2px;
+      letter-spacing: 0.5px;
+    }
+    .formula-eq {
+      color: #fff;
+      font-weight: bold;
+    }
+    .formula-eq span.hl {
+      color: var(--theme);
+      font-weight: 900;
+    }
+
+    .viewport-tools {
+      display: flex;
+      gap: 5px;
+      pointer-events: auto;
+    }
+    .tool-btn {
+      background: rgba(10, 17, 30, 0.85);
+      border: 1px solid var(--panel-border);
+      color: var(--theme);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 9.5px;
+      font-family: monospace;
+      font-weight: bold;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+    }
+    .tool-btn.active {
+      background: var(--theme);
+      color: #000;
+    }
+
+    .pedagogy-banner {
+      background: rgba(0, 240, 255, 0.04);
+      border: 1px dashed rgba(0, 240, 255, 0.3);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 10px;
+      color: #c0d3eb;
+      font-family: monospace;
+      line-height: 1.35;
+    }
+    .pedagogy-banner strong {
+      color: var(--theme);
+    }
+
+    .control-panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .slider-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10.5px;
+      color: var(--muted);
+      font-family: monospace;
+    }
+    .slider-info span.val {
+      color: var(--theme);
+      font-weight: bold;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 20px;
+      background: transparent;
+      margin: 0;
+      cursor: pointer;
+    }
+    input[type=range]:focus { outline: none; }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 5px;
+      background: #060c14;
+      border: 1px solid var(--panel-border);
+      border-radius: 3px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 18px;
+      width: 18px;
+      border-radius: 50%;
+      background: var(--theme);
+      box-shadow: 0 0 10px var(--theme);
+      cursor: pointer;
+      margin-top: -7px;
+      border: 2px solid #fff;
+    }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .btn-action {
+      height: 38px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: bold;
+      font-family: monospace;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: 0.2s;
+    }
+    .btn-export {
+      background: transparent;
+      border: 1px solid var(--theme);
+      color: var(--theme);
+    }
+    .btn-print {
+      background: var(--theme);
+      border: 1px solid var(--theme);
+      color: #000;
+      box-shadow: 0 0 14px rgba(0, 240, 255, 0.3);
+    }
+
+    .spec-card {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      font-family: monospace;
+    }
+    .spec-item { color: var(--muted); }
+    .spec-item strong { color: var(--text); }
+
+    /* ====================================================
+       CMRU ACADEMIC A4 PRINT ENGINE (LOCKED 1-PAGE A4)
+       ==================================================== */
+    #printLayoutSheet {
+      display: none;
+    }
+
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 0 !important;
+      }
+      html, body {
+        width: 100% !important;
+        height: 100% !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+      }
+      header, .app-container {
+        display: none !important;
+      }
+      
+      /* บล็อกพิมพ์ A4 ล็อกความสูงเด็ดขาดที่ 140mm ไม่ล้นหน้า 2 */
+      #printLayoutSheet {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 94% !important;
+        max-width: 270mm !important;
+        height: 140mm !important;
+        max-height: 140mm !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        background: #ffffff !important;
+        page-break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-inside: avoid !important;
+        break-after: avoid !important;
+      }
+
+      .sheet-outer-border {
+        width: 100% !important;
+        height: 100% !important;
+        border: 2px solid #000 !important;
+        padding: 1.2mm !important;
+        display: flex !important;
+        flex-direction: column !important;
+        box-sizing: border-box !important;
+      }
+
+      .sheet-inner-border {
+        width: 100% !important;
+        height: 100% !important;
+        border: 1px solid #000 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        box-sizing: border-box !important;
+      }
+
+      .drawing-header {
+        height: 8mm !important;
+        border-bottom: 1.5px solid #000 !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 0 3mm !important;
+        font-family: "Courier New", Courier, monospace !important;
+      }
+      .drawing-header .comp-name {
+        font-size: 8.5pt !important;
+        font-weight: 900 !important;
+        letter-spacing: 0.8px !important;
+      }
+      .drawing-header .standard-tag {
+        font-size: 5.5pt !important;
+        font-weight: bold !important;
+        border: 1px solid #000 !important;
+        padding: 0.5mm 1.5mm !important;
+      }
+
+      .drawing-canvas-area {
+        flex: 1 !important;
+        width: 100% !important;
+        max-height: 98mm !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 1mm !important;
+        box-sizing: border-box !important;
+      }
+      .drawing-canvas-area svg {
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 98mm !important;
+        display: block !important;
+      }
+
+      .title-block-container {
+        height: 22mm !important;
+        max-height: 22mm !important;
+        border-top: 1.5px solid #000 !important;
+        display: grid !important;
+        grid-template-columns: 1.3fr 1.7fr 1fr !important;
+        font-family: "Courier New", Courier, monospace !important;
+        box-sizing: border-box !important;
+      }
+      .tb-col {
+        border-right: 1px solid #000 !important;
+        padding: 1mm 2.5mm !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        font-size: 5.5pt !important;
+      }
+      .tb-col:last-child {
+        border-right: none !important;
+      }
+      .tb-label {
+        font-size: 4.8pt !important;
+        color: #444 !important;
+        text-transform: uppercase !important;
+      }
+      .tb-val {
+        font-size: 6pt !important;
+        font-weight: bold !important;
+        color: #000 !important;
+      }
+      .tb-title {
+        font-size: 7.5pt !important;
+        font-weight: 900 !important;
+        margin: 0.3mm 0 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <span class="badge-uni">CMRU MATH LAB</span>
+      <strong style="margin-left: 8px; font-size: 12.5px;">CALCULUS 3D ENGINE</strong>
+    </div>
+    <div style="font-size: 9.5px; color: var(--muted); font-family: monospace;">GOLDEN RATIO 1:1.618</div>
+  </header>
+
+  <div class="app-container">
+    
+    <!-- ปุ่มสลับ 6 โมเดล -->
+    <div class="model-switch">
+      <button class="switch-btn active" id="btnModelFeeder" onclick="switchModel('feeder')">🌾 INT<br><small>ปริมาตรหมุน</small></button>
+      <button class="switch-btn" id="btnModelGear" onclick="switchModel('gear')">⚙️ DIFF<br><small>เส้นสัมผัส</small></button>
+      <button class="switch-btn" id="btnModelSine" onclick="switchModel('sine')">⚡ WAVE<br><small>ฮาร์มอนิก</small></button>
+      <button class="switch-btn" id="btnModelNode" onclick="switchModel('node')">🌐 VEC<br><small>ปริภูมิ 3D</small></button>
+      <button class="switch-btn" id="btnModelHyper" onclick="switchModel('hyper')">♾️ QUAD<br><small>หลายตัวแปร</small></button>
+      <button class="switch-btn" id="btnModelQuantum" onclick="switchModel('quantum')">⚛️ FLUX<br><small>เคิร์ล & ฟลักซ์</small></button>
+    </div>
+
+    <!-- 3D Viewport บนมือถือ -->
+    <div class="cad-viewport" id="viewportTouch">
+      
+      <!-- Live Math HUD -->
+      <div class="math-hud-overlay">
+        <div class="formula-card">
+          <div class="formula-title" id="hudTopic">INTEGRATION & SOLID OF REVOLUTION</div>
+          <div class="formula-eq" id="hudFormula">V = π ∫ [f(z)]² dz</div>
+        </div>
+        <div class="viewport-tools">
+          <button class="tool-btn" id="btnSpin" onclick="toggleSpin()">🔄 SPIN</button>
+        </div>
+      </div>
+
+      <svg id="cadStage" viewBox="0 0 600 370"></svg>
+    </div>
+
+    <!-- แถบสรุปแนวคิดการสอน (Pedagogy Concept Banner) -->
+    <div class="pedagogy-banner" id="pedagogyBanner">
+      <strong>แก่นแคลคูลัส:</strong> การหาปริมาตรเนื้อวัสดุจากการรวมแว่นดิสก์บางระดับ $dz \to 0$ ตามแนวแกนดิ่ง
+    </div>
+
+    <div class="control-panel">
+      
+      <div class="slider-group">
+        <div class="slider-info">
+          <span>ORBIT ROTATION (มุมมอง 360°)</span>
+          <span class="val" id="valRot">45°</span>
+        </div>
+        <input type="range" id="rotSlider" min="0" max="360" value="45" oninput="stopSpin(); updateRender();">
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-info">
+          <span>PERSPECTIVE TILT (มุมก้ม-เงยสายตา)</span>
+          <span class="val" id="valTilt">30°</span>
+        </div>
+        <input type="range" id="tiltSlider" min="10" max="75" value="30" oninput="updateRender()">
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-info">
+          <span>MODEL SCALE (อัตราขยายสเกล)</span>
+          <span class="val" id="valScale">1.00x</span>
+        </div>
+        <input type="range" id="scaleSlider" min="60" max="130" value="100" oninput="updateRender()">
+      </div>
+
+      <!-- สไลเดอร์ตัวแปรทางคณิตศาสตร์สด -->
+      <div class="slider-group" id="customSliderGroup">
+        <div class="slider-info">
+          <span id="customSliderLabel">RIEMANN DISK SLICES (จำนวนแว่นดิสก์ N)</span>
+          <span class="val" id="valCustom">12 แว่น</span>
+        </div>
+        <input type="range" id="customSlider" min="4" max="28" value="12" oninput="updateRender()">
+      </div>
+
+      <div class="action-row">
+        <button class="btn-action btn-export" onclick="exportSVG()">💾 EXPORT SVG</button>
+        <button class="btn-action btn-print" onclick="printA4Layout()">🖨️ PRINT CMRU A4</button>
+      </div>
+
+    </div>
+
+    <div class="spec-card" id="specCard"></div>
+
+  </div>
+
+  <!-- แผ่นแบบพิมพ์เขียววิชาการ CMRU A4 LANDSCAPE -->
+  <div id="printLayoutSheet">
+    <div class="sheet-outer-border">
+      <div class="sheet-inner-border">
+        
+        <div class="drawing-header">
+          <div class="comp-name">CHIANG MAI RAJABHAT UNIVERSITY — DEPARTMENT OF MATHEMATICS</div>
+          <div class="standard-tag">CALCULUS & DIFFERENTIAL GEOMETRY LAB</div>
+        </div>
+
+        <div class="drawing-canvas-area" id="printCanvasContainer"></div>
+
+        <div class="title-block-container">
+          <div class="tb-col">
+            <div>
+              <div class="tb-label">INSTITUTION / FACULTY:</div>
+              <div class="tb-val">CMRU FACULTY OF SCIENCE & TECH</div>
+            </div>
+            <div>
+              <div class="tb-label">COURSE / TOPIC:</div>
+              <div class="tb-val" id="printCourse">ADVANCED CALCULUS & 3D VECTOR</div>
+            </div>
+            <div>
+              <div class="tb-label">SCALE RATIO:</div>
+              <div class="tb-val">1:1.618 GOLDEN RATIO (PARAMETRIC)</div>
+            </div>
+          </div>
+
+          <div class="tb-col">
+            <div class="tb-label">LESSON & MATH PROOF:</div>
+            <div class="tb-title" id="printDrawingTitle">SOLID OF REVOLUTION & RIEMANN INTEGRAL</div>
+            <div style="font-size: 7pt; color: #222;" id="printModelDetails">
+              V = π ∫ [f(z)]² dz | SLICES: N=12 | SAFE A4 SINGLE-PAGE
+            </div>
+          </div>
+
+          <div class="tb-col">
+            <div>
+              <div class="tb-label">LAB MODULE NO:</div>
+              <div class="tb-val" id="printDwgNo">CMRU-MATH-CALC-001</div>
+            </div>
+            <div>
+              <div class="tb-label">STATUS / SHEET:</div>
+              <div class="tb-val">ACADEMIC EDITION / 1 OF 1</div>
+            </div>
+            <div>
+              <div class="tb-label">INSTRUCTOR / AUTHOR:</div>
+              <div class="tb-val">MATH DEPT / CHUANG KAO</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let activeModel = 'feeder';
+    let currentColor = '#00f0ff';
+    let isSpinning = false;
+    let spinAnimId = null;
+
+    function switchModel(m) {
+      activeModel = m;
+      document.getElementById('btnModelFeeder').classList.toggle('active', m === 'feeder');
+      document.getElementById('btnModelGear').classList.toggle('active', m === 'gear');
+      document.getElementById('btnModelSine').classList.toggle('active', m === 'sine');
+      document.getElementById('btnModelNode').classList.toggle('active', m === 'node');
+      document.getElementById('btnModelHyper').classList.toggle('active', m === 'hyper');
+      document.getElementById('btnModelQuantum').classList.toggle('active', m === 'quantum');
+
+      const customLabel = document.getElementById('customSliderLabel');
+      const customSlider = document.getElementById('customSlider');
+      const banner = document.getElementById('pedagogyBanner');
+
+      if (m === 'feeder') {
+        customLabel.innerText = "RIEMANN DISK SLICES (จำนวนแว่นดิสก์ N)";
+        customSlider.min = 4;
+        customSlider.max = 28;
+        customSlider.value = 12;
+        banner.innerHTML = `<strong>แก่นแคลคูลัส:</strong> การหาปริมาตรเนื้อวัสดุจากการรวมแว่นดิสก์บางระดับ $dz \\to 0$ ตามแนวแกนดิ่ง`;
+      } else if (m === 'gear') {
+        customLabel.innerText = "INVOLUTE TEETH (จำนวนยอดอนุพันธ์ฟันเฟือง N)";
+        customSlider.min = 12;
+        customSlider.max = 32;
+        customSlider.value = 21;
+        banner.innerHTML = `<strong>แก่นแคลคูลัส:</strong> เส้นโค้งอินโวลูต เกิดจากเวกเตอร์สัมผัส (Tangent Vector) คลี่ออกจากวงกลมฐาน`;
+      } else if (m === 'sine') {
+        customLabel.innerText = "FREQUENCY CYCLES (ความถี่เชิงมุม ω)";
+        customSlider.min = 1;
+        customSlider.max = 5;
+        customSlider.value = 2;
+        banner.innerHTML = `<strong>แก่นแคลคูลัส:</strong> อนุพันธ์อันดับหนึ่ง $\\frac{dy}{dt} = \\omega A \\cos(\\omega t)$ แสดงอัตราการเปลี่ยนแปลงความเร็ว`;
+      } else if (m === 'node') {
+        customLabel.innerText = "BASIS STRUT SPAN (ขนาดเวกเตอร์ฐาน L)";
+        customSlider.min = 70;
+        customSlider.max = 145;
+        customSlider.value = 105;
+        banner.innerHTML = `<strong>แก่นแคลคูลัส:</strong> ผลคูณไขว้เวกเตอร์ $\\vec{u} \\times \\vec{v}$ และการหาระนาบฉาก (Normal Plane) ในปริภูมิ 3 มิติ`;
+      } else if (m === 'hyper') {
+        customLabel.innerText = "WAIST THROAT RADIUS (รัศมีคอดกิ่ว b)";
+        customSlider.min = 25;
+        customSlider.max = 80;
+        customSlider.value = 45;
+        banner.innerHTML = `<strong>แก่นแคลคูลัส:</strong> พื้นผิวกำลังสอง (Quadric Surface) ที่เกิดจากการประกอบกันของเส้นตรงในอวกาศ (Ruled Surface)`;
+      } else {
+        customLabel.innerText = "FLUX VORTEX DENSITY (ความหนาแน่นเส้นฟลักซ์)";
+        customSlider.min = 8;
+        customSlider.max = 28;
+        customSlider.value = 16;
+        banner.innerHTML = `<strong>แก่นแคลคูลัส:</strong> เวกเตอร์แคลคูลัสชั้นสูง การไหลเวียนของสนามแม่เหล็ก (Curl $\\nabla \\times \\vec{F}$) บนผิวทอรัส`;
+      }
+      updateRender();
+    }
+
+    function toggleSpin() {
+      isSpinning = !isSpinning;
+      document.getElementById('btnSpin').classList.toggle('active', isSpinning);
+      if (isSpinning) {
+        runSpin();
+      } else {
+        cancelAnimationFrame(spinAnimId);
+      }
+    }
+
+    function stopSpin() {
+      if (isSpinning) {
+        isSpinning = false;
+        document.getElementById('btnSpin').classList.remove('active');
+        cancelAnimationFrame(spinAnimId);
+      }
+    }
+
+    function runSpin() {
+      if (!isSpinning) return;
+      const slider = document.getElementById('rotSlider');
+      let val = (parseFloat(slider.value) + 0.6) % 360;
+      slider.value = val;
+      updateRender();
+      spinAnimId = requestAnimationFrame(runSpin);
+    }
+
+    // ฟังก์ชัน Print A4 สไตล์วิศวกรรม CMRU
+    function printA4Layout() {
+      stopSpin();
+
+      const customVal = parseFloat(document.getElementById('customSlider').value);
+      const rot = parseFloat(document.getElementById('rotSlider').value);
+      const tilt = parseFloat(document.getElementById('tiltSlider').value);
+      const baseScale = parseFloat(document.getElementById('scaleSlider').value) / 100;
+
+      const titleEl = document.getElementById('printDrawingTitle');
+      const detailEl = document.getElementById('printModelDetails');
+      const dwgNoEl = document.getElementById('printDwgNo');
+
+      if (activeModel === 'feeder') {
+        titleEl.innerText = "SOLID OF REVOLUTION & RIEMANN INTEGRAL";
+        detailEl.innerText = `V = π ∫ [f(z)]² dz | DISKS: N=${Math.round(customVal)} | ROT: ${Math.round(rot)}°, TILT: ${Math.round(tilt)}°`;
+        dwgNoEl.innerText = "CMRU-MATH-CALC-001";
+      } else if (activeModel === 'gear') {
+        titleEl.innerText = "DIFFERENTIAL INVOLUTE & TANGENT VECTORS";
+        detailEl.innerText = `r(θ) = rb √(1 + θ²) | TEETH: ${Math.round(customVal)}T | ROT: ${Math.round(rot)}°, TILT: ${Math.round(tilt)}°`;
+        dwgNoEl.innerText = "CMRU-MATH-DIFF-002";
+      } else if (activeModel === 'sine') {
+        titleEl.innerText = "HARMONIC OSCILLATION & TRIG DERIVATIVES";
+        detailEl.innerText = `y(t) = A sin(ωt + φ) | ω=${customVal}π rad/s | 120° PHASE DISPLACEMENT`;
+        dwgNoEl.innerText = "CMRU-MATH-WAVE-003";
+      } else if (activeModel === 'node') {
+        titleEl.innerText = "ORTHOGONAL BASIS & TANGENT PLANES";
+        detailEl.innerText = `SPAN L:${Math.round(customVal)}mm | NORMAL VECTOR n = u × v | 3D EUCLIDEAN SPACE`;
+        dwgNoEl.innerText = "CMRU-MATH-VEC-004";
+      } else if (activeModel === 'hyper') {
+        titleEl.innerText = "QUADRIC SURFACE & DOUBLY RULED HYPERBOLOID";
+        detailEl.innerText = `x²/a² + y²/b² - z²/c² = 1 | THROAT RADIUS b=${Math.round(customVal)}mm`;
+        dwgNoEl.innerText = "CMRU-MATH-QUAD-005";
+      } else {
+        titleEl.innerText = "VECTOR CALCULUS & TOROIDAL FLUX (CURL/DIV)";
+        detailEl.innerText = `STOKES' THEOREM: ∮ F·dr = ∬ (∇×F)·dS | LOOPS: ${Math.round(customVal)}`;
+        dwgNoEl.innerText = "CMRU-MATH-FLUX-006";
+      }
+
+      const container = document.getElementById('printCanvasContainer');
+      const safePrintScale = baseScale * 0.82;
+      const printCyShift = (activeModel === 'feeder') ? 270 : 185;
+
+      let innerSvg = '';
+      if (activeModel === 'feeder') {
+        innerSvg = generateFeederSVG(rot, tilt, safePrintScale, customVal, '#000000', printCyShift);
+      } else if (activeModel === 'gear') {
+        innerSvg = generateGearSVG(rot, tilt, safePrintScale, customVal, '#000000', printCyShift);
+      } else if (activeModel === 'sine') {
+        innerSvg = generateSineSVG(rot, tilt, safePrintScale, customVal, '#000000', printCyShift);
+      } else if (activeModel === 'node') {
+        innerSvg = generateNodeSVG(rot, tilt, safePrintScale, customVal, '#000000', printCyShift);
+      } else if (activeModel === 'hyper') {
+        innerSvg = generateHyperboloidSVG(rot, tilt, safePrintScale, customVal, '#000000', printCyShift);
+      } else {
+        innerSvg = generateQuantumFluxSVG(rot, tilt, safePrintScale, customVal, '#000000', printCyShift);
+      }
+
+      container.innerHTML = `<svg viewBox="0 0 600 370" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">${innerSvg}</svg>`;
+
+      setTimeout(() => {
+        window.print();
+      }, 300);
+    }
+
+    // Export SVG
+    async function exportSVG() {
+      const svg = document.getElementById('cadStage');
+      if (!svg) return;
+
+      const serializer = new XMLSerializer();
+      let source = serializer.serializeToString(svg);
+      if (!source.match(/^<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)) {
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+      }
+      source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+
+      const fileName = `CMRU_Calculus_${activeModel}_${Date.now()}.svg`;
+      const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+
+      if (navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: 'image/svg+xml' })] })) {
+        try {
+          const file = new File([blob], fileName, { type: 'image/svg+xml' });
+          await navigator.share({
+            title: 'CMRU Calculus Blueprint',
+            text: `Math Model: ${activeModel.toUpperCase()}`,
+            files: [file]
+          });
+          return;
+        } catch (err) {
+          if (err.name === 'AbortError') return;
+        }
+      }
+
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName;
+      link.target = "_blank";
+      document.body.appendChild(link);
+      link.click();
+
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }, 1000);
+    }
+
+    // Touch & Drag Viewport
+    let isTouching = false;
+    let startX = 0;
+    let startRot = 0;
+    const vp = document.getElementById('viewportTouch');
+
+    vp.addEventListener('touchstart', (e) => {
+      isTouching = true;
+      startX = e.touches[0].clientX;
+      startRot = parseFloat(document.getElementById('rotSlider').value);
+      stopSpin();
+    }, { passive: true });
+
+    vp.addEventListener('touchmove', (e) => {
+      if (!isTouching) return;
+      const dx = e.touches[0].clientX - startX;
+      let newRot = (startRot + dx * 0.8) % 360;
+      if (newRot < 0) newRot += 360;
+      document.getElementById('rotSlider').value = newRot;
+      updateRender();
+    }, { passive: true });
+
+    vp.addEventListener('touchend', () => { isTouching = false; });
+
+    function updateRender() {
+      const rot = parseFloat(document.getElementById('rotSlider').value);
+      const tiltDeg = parseFloat(document.getElementById('tiltSlider').value);
+      const scale = parseFloat(document.getElementById('scaleSlider').value) / 100;
+      const customVal = parseFloat(document.getElementById('customSlider').value);
+
+      document.getElementById('valRot').innerText = `${Math.round(rot)}°`;
+      document.getElementById('valTilt').innerText = `${Math.round(tiltDeg)}°`;
+      document.getElementById('valScale').innerText = `${scale.toFixed(2)}x`;
+      
+      const hudTopic = document.getElementById('hudTopic');
+      const hudFormula = document.getElementById('hudFormula');
+      const spec = document.getElementById('specCard');
+      const stage = document.getElementById('cadStage');
+
+      if (activeModel === 'feeder') {
+        document.getElementById('valCustom').innerText = `${Math.round(customVal)} แผ่น`;
+        hudTopic.innerText = "SOLID OF REVOLUTION (WASHER INTEGRATION)";
+        hudFormula.innerHTML = `V = π ∫ [f(z)]² dz &nbsp;|&nbsp; <span class="hl">N = ${Math.round(customVal)} Disks</span>`;
+        spec.innerHTML = `
+          <div class="spec-item">นิยามแคลคูลัส: <strong>Riemann Sum of Disks</strong></div>
+          <div class="spec-item">ผลรวมย่อย: <strong>ΔV = Σ π [r(z)]² Δz</strong></div>
+          <div class="spec-item">ลิมิตเข้าสู่อนันต์: <strong>lim (N→∞) Δz → 0</strong></div>
+          <div class="spec-item">การประยุกต์ใช้งาน: <strong>ปริมาตรกรวยบรรจุวัสดุ</strong></div>
+        `;
+        stage.innerHTML = generateFeederSVG(rot, tiltDeg, scale, customVal, currentColor, 270);
+      } else if (activeModel === 'gear') {
+        document.getElementById('valCustom').innerText = `${Math.round(customVal)} ยอดฟัน`;
+        hudTopic.innerText = "DIFFERENTIAL INVOLUTE GEOMETRY";
+        hudFormula.innerHTML = `r(θ) = r_b √(1 + θ²) &nbsp;|&nbsp; <span class="hl">dr/dθ = r_b · θ / √(1 + θ²)</span>`;
+        spec.innerHTML = `
+          <div class="spec-item">เส้นโค้งอนุพันธ์: <strong>Involute Polar Vector</strong></div>
+          <div class="spec-item">เวกเตอร์สัมผัส: <strong>T(θ) = dr/dθ · u_θ</strong></div>
+          <div class="spec-item">มุมกดแรงสัมผัส: <strong>Pressure Angle α = 20°</strong></div>
+          <div class="spec-item">การประยุกต์ใช้งาน: <strong>การส่งถ่ายแรงเชิงกลไม่สูญพลังงาน</strong></div>
+        `;
+        stage.innerHTML = generateGearSVG(rot, tiltDeg, scale, customVal, currentColor, 200);
+      } else if (activeModel === 'sine') {
+        document.getElementById('valCustom').innerText = `ω = ${customVal}π`;
+        hudTopic.innerText = "HARMONIC OSCILLATION & DERIVATIVES";
+        hudFormula.innerHTML = `y(t) = A sin(ωt + φ) &nbsp;|&nbsp; <span class="hl">y'(t) = ωA cos(ωt + φ)</span>`;
+        spec.innerHTML = `
+          <div class="spec-item">อนุพันธ์อันดับ 1: <strong>ความเร็วเชิงมุม (Velocity)</strong></div>
+          <div class="spec-item">อนุพันธ์อันดับ 2: <strong>y''(t) = -ω² y(t) (ความเร่ง)</strong></div>
+          <div class="spec-item">การเลื่อนมุมเฟส: <strong>Δφ = 120° Balanced</strong></div>
+          <div class="spec-item">การประยุกต์ใช้งาน: <strong>ระบบไฟฟ้ากำลัง 3 เฟส 380V</strong></div>
+        `;
+        stage.innerHTML = generateSineSVG(rot, tiltDeg, scale, customVal, currentColor, 200);
+      } else if (activeModel === 'node') {
+        document.getElementById('valCustom').innerText = `L = ${Math.round(customVal)} mm`;
+        hudTopic.innerText = "3D ORTHOGONAL BASIS & VECTOR PRODUCTS";
+        hudFormula.innerHTML = `n = u × v &nbsp;|&nbsp; <span class="hl">||u × v|| = ||u|| ||v|| sin(90°)</span>`;
+        spec.innerHTML = `
+          <div class="spec-item">เวกเตอร์ฐานหลัก: <strong>Orthogonal Basis (i, j, k)</strong></div>
+          <div class="spec-item">สมดุลของแรง: <strong>Σ F = 0 (Static Equilibrium)</strong></div>
+          <div class="spec-item">ระนาบสัมผัส: <strong>Tangent Plane Ax+By+Cz=D</strong></div>
+          <div class="spec-item">การประยุกต์ใช้งาน: <strong>โครงถักสเปซเฟรมรับแรง 6 แกน</strong></div>
+        `;
+        stage.innerHTML = generateNodeSVG(rot, tiltDeg, scale, customVal, currentColor, 190);
+      } else if (activeModel === 'hyper') {
+        document.getElementById('valCustom').innerText = `b = ${Math.round(customVal)} mm`;
+        hudTopic.innerText = "QUADRIC SURFACE & PARTIAL DERIVATIVES";
+        hudFormula.innerHTML = `x²/a² + y²/b² - z²/c² = 1 &nbsp;|&nbsp; <span class="hl">∂z/∂x = (c²x)/(a²z)</span>`;
+        spec.innerHTML = `
+          <div class="spec-item">พื้นผิวสร้างจากเส้นตรง: <strong>Doubly Ruled Surface</strong></div>
+          <div class="spec-item">อนุพันธ์ย่อย: <strong>∂z/∂x, ∂z/∂y (Slope Traces)</strong></div>
+          <div class="spec-item">ความโค้งเกาส์เซียน: <strong>Gaussian Curvature K < 0</strong></div>
+          <div class="spec-item">การประยุกต์ใช้งาน: <strong>หอคอยระบายความร้อนและตึกสูง</strong></div>
+        `;
+        stage.innerHTML = generateHyperboloidSVG(rot, tiltDeg, scale, customVal, currentColor, 190);
+      } else {
+        document.getElementById('valCustom').innerText = `${Math.round(customVal)} ลูปฟลักซ์`;
+        hudTopic.innerText = "VECTOR CALCULUS: STOKES' & DIVERGENCE";
+        hudFormula.innerHTML = `∮_C F · dr = ∬_S (∇ × F) · dS &nbsp;|&nbsp; <span class="hl">∇ · B = 0</span>`;
+        spec.innerHTML = `
+          <div class="spec-item">การหมุนวนสนามเวกเตอร์: <strong>Curl (∇ × F)</strong></div>
+          <div class="spec-item">ความไม่มีขั้วเดี่ยว: <strong>Divergence (∇ · B = 0)</strong></div>
+          <div class="spec-item">ทอรัสหลายมิติ: <strong>Toroidal Manifold T²</strong></div>
+          <div class="spec-item">การประยุกต์ใช้งาน: <strong>เตาปฏิกรณ์ฟิวชันและแม่เหล็กควอนตัม</strong></div>
+        `;
+        stage.innerHTML = generateQuantumFluxSVG(rot, tiltDeg, scale, customVal, currentColor, 185);
+      }
+    }
+
+    // 1. GENERATE FEEDER SVG WITH RIEMANN SLICES
+    function generateFeederSVG(rotDeg, tiltDeg, scale, numSlices, color, cyPos) {
+      const cx = 300, cy = cyPos;
+      const rad = (rotDeg * Math.PI) / 180;
+      const tilt = Math.sin((tiltDeg * Math.PI) / 180);
+
+      const trayR = 155, trayLipH = 35, coneBaseR = 88, coneTopR = 58, hopperH = 180;
+
+      let svgHtml = `
+        <defs>
+          <pattern id="gridFdr_${cyPos}" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="${color}" stroke-opacity="0.05" stroke-width="0.8"/>
+          </pattern>
+        </defs>
+        <rect width="600" height="370" fill="url(#gridFdr_${cyPos})"/>
+
+        <!-- แกนอินทิเกรต Z-Integration Axis -->
+        <line x1="${cx}" y1="35" x2="${cx}" y2="350" stroke="${color}" stroke-opacity="0.3" stroke-width="1.2" stroke-dasharray="4 4"/>
+        <line x1="80" y1="${cy}" x2="520" y2="${cy}" stroke="${color}" stroke-opacity="0.1" stroke-width="1" stroke-dasharray="2 2"/>
+
+        <ellipse cx="${cx}" cy="${cy}" rx="${trayR * scale}" ry="${trayR * scale * tilt}" fill="none" stroke="${color}" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.4"/>
+        <ellipse cx="${cx}" cy="${cy - (trayLipH * scale)}" rx="${trayR * scale}" ry="${trayR * scale * tilt}" fill="none" stroke="${color}" stroke-width="1.6"/>
+        <line x1="${cx - trayR * scale}" y1="${cy}" x2="${cx - trayR * scale}" y2="${cy - trayLipH * scale}" stroke="${color}" stroke-width="1.5"/>
+        <line x1="${cx + trayR * scale}" y1="${cy}" x2="${cx + trayR * scale}" y2="${cy - trayLipH * scale}" stroke="${color}" stroke-width="1.5"/>
+      `;
+
+      // แสดงการซอยแผ่น Riemann Sum Slices แบบไดนามิกตามตัวแปร numSlices!
+      const totalH = hopperH;
+      const dz = totalH / numSlices;
+      for (let i = 0; i <= numSlices; i++) {
+        const currentZ = trayLipH + (i * dz);
+        const t = i / numSlices;
+        const currentR = coneBaseR + (coneTopR - coneBaseR) * t;
+
+        const isEdge = (i === 0 || i === numSlices);
+        const strokeW = isEdge ? 1.8 : 0.9;
+        const opacity = isEdge ? 0.9 : 0.45;
+        const dash = isEdge ? 'none' : '2 3';
+
+        svgHtml += `
+          <ellipse cx="${cx}" cy="${cy - (currentZ * scale)}" rx="${currentR * scale}" ry="${currentR * scale * tilt}" 
+                   fill="rgba(0, 240, 255, 0.02)" stroke="${color}" stroke-width="${strokeW}" stroke-dasharray="${dash}" opacity="${opacity}"/>
+        `;
+      }
+
+      // เส้นขอบกรวยนอก
+      const pTopLeftX = cx - (coneTopR * scale);
+      const pTopY = cy - ((trayLipH + hopperH) * scale);
+      const pBotLeftX = cx - (coneBaseR * scale);
+      const pBotY = cy - (trayLipH * scale);
+      svgHtml += `
+        <line x1="${pBotLeftX}" y1="${pBotY}" x2="${pTopLeftX}" y2="${pTopY}" stroke="${color}" stroke-width="1.8"/>
+        <line x1="${cx + (coneBaseR * scale)}" y1="${pBotY}" x2="${cx + (coneTopR * scale)}" y2="${pTopY}" stroke="${color}" stroke-width="1.8"/>
+      `;
+
+      // แถบมิติและการอินทิเกรต Δz
+      const dimX = cx + (trayR * scale) + 24;
+      svgHtml += `
+        <g stroke="${color}" opacity="0.85">
+          <line x1="${dimX}" y1="${cy}" x2="${dimX}" y2="${pTopY}" stroke-width="1.2"/>
+          <line x1="${dimX - 6}" y1="${cy}" x2="${dimX + 6}" y2="${cy}" stroke-width="1.2"/>
+          <line x1="${dimX - 6}" y1="${pTopY}" x2="${dimX + 6}" y2="${pTopY}" stroke-width="1.2"/>
+          <text x="${dimX + 8}" y="${(cy + pTopY)/2}" fill="${color}" font-size="9" font-weight="bold" font-family="monospace">H:${hopperH}mm</text>
+          <text x="${dimX + 8}" y="${(cy + pTopY)/2 + 12}" fill="${color}" font-size="8" font-family="monospace">Δz:${dz.toFixed(1)}mm</text>
+        </g>
+        <text x="20" y="340" fill="${color}" font-size="10" font-family="monospace" opacity="0.9">CALCULUS: SOLID OF REVOLUTION & RIEMANN SUM</text>
+        <text x="20" y="355" fill="${color}" font-size="8.5" font-family="monospace" opacity="0.5">V = lim(N→∞) Σ π [r(z)]² Δz = π ∫ [f(z)]² dz</text>
+      `;
+
+      return svgHtml;
+    }
+
+    // 2. GENERATE GEAR SVG WITH TANGENT VECTORS
+    function generateGearSVG(rotDeg, tiltDeg, scale, teethCount, color, cyPos) {
+      const cx = 300, cy = cyPos;
+      const rad = (rotDeg * Math.PI) / 180;
+      const tilt = Math.sin((tiltDeg * Math.PI) / 180);
+      const gearThick = 40;
+
+      function gearPt(r, angleOffsetDeg, z) {
+        const a = rad + (angleOffsetDeg * Math.PI / 180);
+        return {
+          x: cx + (r * Math.cos(a) * scale),
+          y: cy + (r * Math.sin(a) * scale * tilt) - (z * scale)
+        };
+      }
+
+      const rOuter = 145, rPitch = 130, rRoot = 110, rHub = 45, rShaft = 22;
+      let topPath = '', botPath = '';
+      const totalPoints = teethCount * 4;
+
+      for (let i = 0; i < totalPoints; i++) {
+        const step = (360 / totalPoints) * i;
+        const mod = i % 4;
+        let r = (mod === 1 || mod === 2) ? rOuter : rRoot;
+
+        const ptTop = gearPt(r, step, gearThick / 2);
+        const ptBot = gearPt(r, step, -gearThick / 2);
+
+        topPath += `${i === 0 ? 'M' : 'L'} ${ptTop.x},${ptTop.y} `;
+        botPath += `${i === 0 ? 'M' : 'L'} ${ptBot.x},${ptBot.y} `;
+      }
+      topPath += 'Z';
+      botPath += 'Z';
+
+      let svgHtml = `
+        <defs>
+          <pattern id="gridGear_${cyPos}" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="${color}" stroke-opacity="0.05" stroke-width="0.8"/>
+          </pattern>
+        </defs>
+        <rect width="600" height="370" fill="url(#gridGear_${cyPos})"/>
+
+        <line x1="${cx}" y1="35" x2="${cx}" y2="350" stroke="${color}" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4 4"/>
+        <line x1="80" y1="${cy}" x2="520" y2="${cy}" stroke="${color}" stroke-opacity="0.1" stroke-width="1" stroke-dasharray="2 2"/>
+
+        <!-- วงพิตช์ (Pitch Circle) แสดงความโค้งอนุพันธ์ -->
+        <ellipse cx="${cx}" cy="${cy - (gearThick/2 * scale)}" rx="${rPitch * scale}" ry="${rPitch * scale * tilt}" 
+                 fill="none" stroke="${color}" stroke-width="1" stroke-dasharray="4 4" opacity="0.5"/>
+
+        <path d="${botPath}" fill="none" stroke="${color}" stroke-width="1.2" stroke-dasharray="2 2" opacity="0.5"/>
+      `;
+
+      for (let i = 0; i < totalPoints; i += 2) {
+        const step = (360 / totalPoints) * i;
+        const mod = i % 4;
+        let r = (mod === 1 || mod === 2) ? rOuter : rRoot;
+        const ptTop = gearPt(r, step, gearThick / 2);
+        const ptBot = gearPt(r, step, -gearThick / 2);
+        svgHtml += `<line x1="${ptTop.x}" y1="${ptTop.y}" x2="${ptBot.x}" y2="${ptBot.y}" stroke="${color}" stroke-width="1.3"/>`;
+      }
+
+      svgHtml += `
+        <path d="${topPath}" fill="none" stroke="${color}" stroke-width="2.0"/>
+
+        <ellipse cx="${cx}" cy="${cy - (gearThick/2 * scale)}" rx="${rHub * scale}" ry="${rHub * scale * tilt}" 
+                 fill="none" stroke="${color}" stroke-width="1.8"/>
+
+        <ellipse cx="${cx}" cy="${cy - (gearThick/2 * scale)}" rx="${rShaft * scale}" ry="${rShaft * scale * tilt}" 
+                 fill="none" stroke="${color}" stroke-width="1.6"/>
+        <rect x="${cx - 4 * scale}" y="${cy - (gearThick/2 * scale) - (rShaft + 4) * scale * tilt}" 
+              width="${8 * scale}" height="${7 * scale}" fill="${color}" opacity="0.8"/>
+      `;
+
+      // เวกเตอร์ความชันสัมผัส (Tangent Vectors dr/dθ) บนฟันเฟือง
+      for (let a = 0; a < 360; a += 90) {
+        const ptTooth = gearPt(rOuter, a, gearThick / 2);
+        const ptTangent = gearPt(rOuter + 25, a + 15, gearThick / 2);
+        svgHtml += `
+          <line x1="${ptTooth.x}" y1="${ptTooth.y}" x2="${ptTangent.x}" y2="${ptTangent.y}" stroke="#ffb703" stroke-width="1.8" stroke-linecap="round"/>
+          <circle cx="${ptTooth.x}" cy="${ptTooth.y}" r="2.5" fill="#ffb703"/>
+        `;
+      }
+
+      svgHtml += `
+        <text x="20" y="340" fill="${color}" font-size="10" font-family="monospace" opacity="0.9">DIFFERENTIAL GEOMETRY: INVOLUTE POLAR PROFILE</text>
+        <text x="20" y="355" fill="${color}" font-size="8.5" font-family="monospace" opacity="0.5">TANGENT VECTOR T(θ) = dr/dθ · u_θ | PRESSURE ANGLE 20°</text>
+      `;
+
+      return svgHtml;
+    }
+
+    // 3. GENERATE SINE SVG WITH HARMONICS
+    function generateSineSVG(rotDeg, tiltDeg, scale, cycles, themeColor, cyPos) {
+      const cx = 300, cy = cyPos;
+      const rad = (rotDeg * Math.PI) / 180;
+      const tilt = Math.sin((tiltDeg * Math.PI) / 180);
+
+      function project3D(x, y, z) {
+        const cosR = Math.cos(rad);
+        const sinR = Math.sin(rad);
+        const rotX = (x * cosR - y * sinR) * scale;
+        const rotY = (x * sinR + y * cosR) * scale;
+        return {
+          px: cx + rotX,
+          py: cy + (rotY * tilt) - (z * scale)
+        };
+      }
+
+      const lengthX = 280, amp = 65;
+      const phases = [
+        { name: "Phase A (0°)", color: "#ff4d4d", offsetDeg: 0,   yTrack: -40 },
+        { name: "Phase B (120°)", color: "#d97706", offsetDeg: 120, yTrack: 0 },
+        { name: "Phase C (240°)", color: "#00f0ff", offsetDeg: 240, yTrack: 40 }
+      ];
+
+      let svgHtml = `
+        <defs>
+          <pattern id="gridSine_${cyPos}" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="${themeColor}" stroke-opacity="0.05" stroke-width="0.8"/>
+          </pattern>
+        </defs>
+        <rect width="600" height="370" fill="url(#gridSine_${cyPos})"/>
+
+        <g stroke="${themeColor}" stroke-opacity="0.2" stroke-width="1">
+      `;
+
+      for (let y = -60; y <= 60; y += 40) {
+        const p1 = project3D(-lengthX, y, 0);
+        const p2 = project3D(lengthX, y, 0);
+        svgHtml += `<line x1="${p1.px}" y1="${p1.py}" x2="${p2.px}" y2="${p2.py}" stroke-dasharray="3 3"/>`;
+      }
+      for (let x = -lengthX; x <= lengthX; x += 70) {
+        const p1 = project3D(x, -60, 0);
+        const p2 = project3D(x, 60, 0);
+        svgHtml += `<line x1="${p1.px}" y1="${p1.py}" x2="${p2.px}" y2="${p2.py}" stroke-dasharray="3 3"/>`;
+      }
+      svgHtml += `</g>`;
+
+      phases.forEach(ph => {
+        let path3D = '', groundShadow = '';
+        const samples = 140;
+
+        for (let i = 0; i <= samples; i++) {
+          const t = i / samples;
+          const x = -lengthX + (t * 2 * lengthX);
+          const theta = (t * cycles * 2 * Math.PI) + (ph.offsetDeg * Math.PI / 180);
+          const z = amp * Math.sin(theta);
+
+          const pt = project3D(x, ph.yTrack, z);
+          const ptGround = project3D(x, ph.yTrack, 0);
+
+          path3D += `${i === 0 ? 'M' : 'L'} ${pt.px},${pt.py} `;
+          groundShadow += `${i === 0 ? 'M' : 'L'} ${ptGround.px},${ptGround.py} `;
+
+          // เวกเตอร์อนุพันธ์ความชัน dy/dt
+          if (i % 14 === 0) {
+            svgHtml += `
+              <line x1="${pt.px}" y1="${pt.py}" x2="${ptGround.px}" y2="${ptGround.py}" stroke="${ph.color}" stroke-width="0.9" opacity="0.4" stroke-dasharray="2 2"/>
+              <circle cx="${pt.px}" cy="${pt.py}" r="2" fill="${ph.color}"/>
+            `;
+          }
+        }
+
+        svgHtml += `<path d="${groundShadow}" fill="none" stroke="${ph.color}" stroke-width="1" stroke-dasharray="2 3" opacity="0.35"/>`;
+        svgHtml += `<path d="${path3D}" fill="none" stroke="${ph.color}" stroke-width="2.2" stroke-linecap="round"/>`;
+      });
+
+      svgHtml += `
+        <text x="20" y="340" fill="${themeColor}" font-size="10" font-family="monospace" opacity="0.9">TRIGONOMETRIC CALCULUS: HARMONIC OSCILLATIONS</text>
+        <text x="20" y="355" fill="${themeColor}" font-size="8.5" font-family="monospace" opacity="0.5">VELOCITY: y'(t) = ωA cos(ωt + φ) | ACCELERATION: y''(t) = -ω² y(t)</text>
+      `;
+
+      return svgHtml;
+    }
+
+    // 4. GENERATE 3D NODE SVG WITH BASIS VECTORS
+    function generateNodeSVG(rotDeg, tiltDeg, scale, strutLen, color, cyPos) {
+      const cx = 300, cy = cyPos;
+      const rad = (rotDeg * Math.PI) / 180;
+      const tilt = Math.sin((tiltDeg * Math.PI) / 180);
+
+      function project3D(x, y, z) {
+        const cosR = Math.cos(rad);
+        const sinR = Math.sin(rad);
+        const rotX = (x * cosR - y * sinR) * scale;
+        const rotY = (x * sinR + y * cosR) * scale;
+        return {
+          px: cx + rotX,
+          py: cy + (rotY * tilt) - (z * scale)
+        };
+      }
+
+      const hubR = 40;
+      let svgHtml = `
+        <defs>
+          <pattern id="gridNode_${cyPos}" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="${color}" stroke-opacity="0.05" stroke-width="0.8"/>
+          </pattern>
+        </defs>
+        <rect width="600" height="370" fill="url(#gridNode_${cyPos})"/>
+
+        <line x1="${cx}" y1="35" x2="${cx}" y2="350" stroke="${color}" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4 4"/>
+        <line x1="80" y1="${cy}" x2="520" y2="${cy}" stroke="${color}" stroke-opacity="0.1" stroke-width="1" stroke-dasharray="2 2"/>
+      `;
+
+      const axes = [
+        { dir: [1, 0, 0], label: "+i (X)" }, { dir: [-1, 0, 0], label: "-i" },
+        { dir: [0, 1, 0], label: "+j (Y)" }, { dir: [0, -1, 0], label: "-j" },
+        { dir: [0, 0, 1], label: "+k (Z)" }, { dir: [0, 0, -1], label: "-k" }
+      ];
+
+      // โครงข่ายเส้นโยงผลคูณไขว้
+      svgHtml += `<g stroke="${color}" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.35">`;
+      for (let i = 0; i < 4; i++) {
+        const next = (i + 1) % 4;
+        const p1 = project3D(axes[i].dir[0] * strutLen, axes[i].dir[1] * strutLen, 0);
+        const p2 = project3D(axes[next].dir[0] * strutLen, axes[next].dir[1] * strutLen, 0);
+        const pTop = project3D(0, 0, strutLen);
+        const pBot = project3D(0, 0, -strutLen);
+
+        svgHtml += `<line x1="${p1.px}" y1="${p1.py}" x2="${p2.px}" y2="${p2.py}"/>`;
+        svgHtml += `<line x1="${p1.px}" y1="${p1.py}" x2="${pTop.px}" y2="${pTop.py}"/>`;
+        svgHtml += `<line x1="${p1.px}" y1="${p1.py}" x2="${pBot.px}" y2="${pBot.py}"/>`;
+      }
+      svgHtml += `</g>`;
+
+      axes.forEach(ax => {
+        const pStart = project3D(ax.dir[0] * hubR, ax.dir[1] * hubR, ax.dir[2] * hubR);
+        const pEnd = project3D(ax.dir[0] * strutLen, ax.dir[1] * strutLen, ax.dir[2] * strutLen);
+        
+        svgHtml += `<line x1="${pStart.px}" y1="${pStart.py}" x2="${pEnd.px}" y2="${pEnd.py}" stroke="${color}" stroke-width="3" stroke-linecap="round"/>`;
+        svgHtml += `<line x1="${pStart.px}" y1="${pStart.py}" x2="${pEnd.px}" y2="${pEnd.py}" stroke="#fff" stroke-width="1" stroke-dasharray="4 2"/>`;
+
+        svgHtml += `
+          <circle cx="${pEnd.px}" cy="${pEnd.py}" r="${5.5 * scale}" fill="none" stroke="${color}" stroke-width="1.6"/>
+          <circle cx="${pEnd.px}" cy="${pEnd.py}" r="${2 * scale}" fill="${color}"/>
+        `;
+      });
+
+      const ringSteps = 36;
+      let eqPath = '';
+      for (let i = 0; i <= ringSteps; i++) {
+        const theta = (i / ringSteps) * Math.PI * 2;
+        const pt = project3D(hubR * Math.cos(theta), hubR * Math.sin(theta), 0);
+        eqPath += `${i === 0 ? 'M' : 'L'} ${pt.px},${pt.py} `;
+      }
+      svgHtml += `<path d="${eqPath}" fill="none" stroke="${color}" stroke-width="2"/>`;
+
+      svgHtml += `
+        <text x="20" y="340" fill="${color}" font-size="10" font-family="monospace" opacity="0.9">MULTIVARIABLE CALCULUS: ORTHOGONAL BASIS & NORMAL PLANES</text>
+        <text x="20" y="355" fill="${color}" font-size="8.5" font-family="monospace" opacity="0.5">NORMAL VECTOR: n = u × v | TANGENT PLANE: A(x-x0) + B(y-y0) + C(z-z0) = 0</text>
+      `;
+
+      return svgHtml;
+    }
+
+    // 5. GENERATE HYPERBOLOID SVG
+    function generateHyperboloidSVG(rotDeg, tiltDeg, scale, waistR, color, cyPos) {
+      const cx = 300, cy = cyPos;
+      const rad = (rotDeg * Math.PI) / 180;
+      const tilt = Math.sin((tiltDeg * Math.PI) / 180);
+
+      function project3D(x, y, z) {
+        const cosR = Math.cos(rad);
+        const sinR = Math.sin(rad);
+        const rotX = (x * cosR - y * sinR) * scale;
+        const rotY = (x * sinR + y * cosR) * scale;
+        return {
+          px: cx + rotX,
+          py: cy + (rotY * tilt) - (z * scale)
+        };
+      }
+
+      const totalH = 115, topR = 95, numLines = 24, twistAngle = 110;
+      let svgHtml = `
+        <defs>
+          <pattern id="gridHyp_${cyPos}" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="${color}" stroke-opacity="0.05" stroke-width="0.8"/>
+          </pattern>
+        </defs>
+        <rect width="600" height="370" fill="url(#gridHyp_${cyPos})"/>
+
+        <line x1="${cx}" y1="35" x2="${cx}" y2="350" stroke="${color}" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4 4"/>
+        <line x1="80" y1="${cy}" x2="520" y2="${cy}" stroke="${color}" stroke-opacity="0.1" stroke-width="1" stroke-dasharray="2 2"/>
+      `;
+
+      function drawRing(r, z, strokeW, dash, op) {
+        const steps = 36;
+        let pStr = '';
+        for (let i = 0; i <= steps; i++) {
+          const a = (i / steps) * Math.PI * 2;
+          const pt = project3D(r * Math.cos(a), r * Math.sin(a), z);
+          pStr += `${i === 0 ? 'M' : 'L'} ${pt.px},${pt.py} `;
+        }
+        svgHtml += `<path d="${pStr}" fill="none" stroke="${color}" stroke-width="${strokeW}" stroke-dasharray="${dash}" opacity="${op}"/>`;
+      }
+
+      drawRing(topR, totalH, 2.0, 'none', 0.9);
+      drawRing(topR, -totalH, 2.0, 'none', 0.9);
+      drawRing(waistR, 0, 1.4, '3 2', 0.7);
+
+      for (let i = 0; i < numLines; i++) {
+        const angleBot = (360 / numLines) * i;
+        const pBot1 = project3D(topR * Math.cos((angleBot * Math.PI)/180), topR * Math.sin((angleBot * Math.PI)/180), -totalH);
+        const pTop1 = project3D(topR * Math.cos(((angleBot + twistAngle) * Math.PI)/180), topR * Math.sin(((angleBot + twistAngle) * Math.PI)/180), totalH);
+        svgHtml += `<line x1="${pBot1.px}" y1="${pBot1.py}" x2="${pTop1.px}" y2="${pTop1.py}" stroke="${color}" stroke-width="1.3" opacity="0.6"/>`;
+
+        const pTop2 = project3D(topR * Math.cos(((angleBot - twistAngle) * Math.PI)/180), topR * Math.sin(((angleBot - twistAngle) * Math.PI)/180), totalH);
+        svgHtml += `<line x1="${pBot1.px}" y1="${pBot1.py}" x2="${pTop2.px}" y2="${pTop2.py}" stroke="${color}" stroke-width="1.3" opacity="0.6"/>`;
+      }
+
+      svgHtml += `
+        <text x="20" y="340" fill="${color}" font-size="10" font-family="monospace" opacity="0.9">QUADRIC SURFACES: HYPERBOLOID OF ONE SHEET</text>
+        <text x="20" y="355" fill="${color}" font-size="8.5" font-family="monospace" opacity="0.5">MATH: x²/a² + y²/b² - z²/c² = 1 | PARTIAL DERIVATIVE: ∂z/∂x = (c²x)/(a²z)</text>
+      `;
+
+      return svgHtml;
+    }
+
+    // 6. GENERATE QUANTUM FLUX SVG
+    function generateQuantumFluxSVG(rotDeg, tiltDeg, scale, numLoops, color, cyPos) {
+      const cx = 300, cy = cyPos;
+      const rad = (rotDeg * Math.PI) / 180;
+      const tilt = Math.sin((tiltDeg * Math.PI) / 180);
+
+      function project3D(x, y, z) {
+        const cosR = Math.cos(rad);
+        const sinR = Math.sin(rad);
+        const rotX = (x * cosR - y * sinR) * scale;
+        const rotY = (x * sinR + y * cosR) * scale;
+        return {
+          px: cx + rotX,
+          py: cy + (rotY * tilt) - (z * scale)
+        };
+      }
+
+      const R_major = 110, r_minor = 46;
+
+      let svgHtml = `
+        <defs>
+          <pattern id="gridQflux_${cyPos}" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="${color}" stroke-opacity="0.05" stroke-width="0.8"/>
+          </pattern>
+        </defs>
+        <rect width="600" height="370" fill="url(#gridQflux_${cyPos})"/>
+
+        <line x1="${cx}" y1="30" x2="${cx}" y2="350" stroke="${color}" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4 4"/>
+        <line x1="80" y1="${cy}" x2="520" y2="${cy}" stroke="${color}" stroke-opacity="0.1" stroke-width="1" stroke-dasharray="2 2"/>
+      `;
+
+      const loopSteps = 36;
+      for (let k = 0; k < numLoops; k++) {
+        const u = (k / numLoops) * Math.PI * 2;
+        let loopPath = '';
+        for (let j = 0; j <= loopSteps; j++) {
+          const v = (j / loopSteps) * Math.PI * 2;
+          const x = (R_major + r_minor * Math.cos(v)) * Math.cos(u);
+          const y = (R_major + r_minor * Math.cos(v)) * Math.sin(u);
+          const z = r_minor * Math.sin(v) * 1.25;
+
+          const pt = project3D(x, y, z);
+          loopPath += `${j === 0 ? 'M' : 'L'} ${pt.px},${pt.py} `;
+        }
+        svgHtml += `<path d="${loopPath}" fill="none" stroke="${color}" stroke-width="1.1" opacity="0.55"/>`;
+      }
+
+      svgHtml += `
+        <text x="20" y="340" fill="${color}" font-size="10" font-family="monospace" opacity="0.9">VECTOR CALCULUS: TOROIDAL FLUX & STOKES' THEOREM</text>
+        <text x="20" y="355" fill="${color}" font-size="8.5" font-family="monospace" opacity="0.5">CIRCULATION: ∮ F·dr = ∬ (∇×F)·dS | DIVERGENCE: ∇·B = 0</text>
+      `;
+
+      return svgHtml;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      updateRender();
+    });
+  </script>
+</body>
+</html>
