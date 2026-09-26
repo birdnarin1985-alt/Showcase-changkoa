@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Chicken Feeder - 3D Blueprint Wireframe CAD</title>
+  <style>
+    :root {
+      --bg: #070d14;
+      --panel: #0d1824;
+      --border: #1a2d42;
+      --text: #e2eafc;
+      --muted: #7d93b0;
+      --theme-color: #00f0ff;
+      --phi: 1.618;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding-bottom: 24px;
+    }
+
+    header {
+      width: 100%;
+      max-width: 520px;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      background: rgba(13, 24, 36, 0.85);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .badge {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--theme-color);
+      color: var(--theme-color);
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    /* Golden Ratio App Container */
+    .app-container {
+      width: 100%;
+      max-width: 520px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* 3D Viewport: อัตราส่วนความสูงตามสัดส่วนทองคำ (Width / 1.618) */
+    .cad-viewport {
+      width: 100%;
+      aspect-ratio: 1.618 / 1;
+      background: #04080e;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.85);
+    }
+    svg#cadStage {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+    .hud-stat {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 10px;
+      color: var(--theme-color);
+      background: rgba(4, 8, 14, 0.85);
+      padding: 4px 8px;
+      border-radius: 3px;
+      border-left: 2px solid var(--theme-color);
+      pointer-events: none;
+      font-family: monospace;
+    }
+
+    /* Control Panel */
+    .control-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .color-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .color-btn {
+      height: 36px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: monospace;
+      transition: 0.2s;
+    }
+    .color-btn.active {
+      border-color: var(--theme-color);
+      color: #fff;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .slider-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: monospace;
+    }
+    .slider-info span.val {
+      color: var(--theme-color);
+      font-weight: bold;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 24px;
+      background: transparent;
+      margin: 0;
+      cursor: pointer;
+    }
+    input[type=range]:focus { outline: none; }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 5px;
+      background: #080f18;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 20px;
+      width: 20px;
+      border-radius: 50%;
+      background: var(--theme-color);
+      box-shadow: 0 0 10px var(--theme-color);
+      cursor: pointer;
+      margin-top: -8px;
+      border: 2px solid #fff;
+    }
+
+    /* Spec Data Summary */
+    .spec-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 11px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-family: monospace;
+    }
+    .spec-item { color: var(--muted); }
+    .spec-item strong { color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <span class="badge" id="badgeTheme">BLUEPRINT 3D</span>
+      <strong style="margin-left: 8px; font-size: 13px;">FEEDER CAD ENGINE</strong>
+    </div>
+    <div style="font-size: 10px; color: var(--muted); font-family: monospace;">RATIO 1:1.618</div>
+  </header>
+
+  <div class="app-container">
+    
+    <!-- Viewport ขนาด Golden Ratio -->
+    <div class="cad-viewport">
+      <div class="hud-stat" id="hudStat">ROT: 45° | SCALE: 1.0x</div>
+      <svg id="cadStage" viewBox="0 0 600 370"></svg>
+    </div>
+
+    <!-- UI แผงควบคุมสัมผัส -->
+    <div class="control-panel">
+      
+      <!-- ปุ่มเปลี่ยนชุดสีพิมพ์เขียว -->
+      <div class="color-tabs">
+        <button class="color-btn active" onclick="setColor('#00f0ff', 'CYAN', this)">BLUEPRINT</button>
+        <button class="color-btn" onclick="setColor('#52b788', 'GREEN', this)">VETIVER BIO</button>
+        <button class="color-btn" onclick="setColor('#ffb703', 'AMBER', this)">AMBER CAD</button>
+      </div>
+
+      <!-- สไลเดอร์หมุนรอบแกน Y (0 - 360 องศา) -->
+      <div class="slider-group">
+        <div class="slider-info">
+          <span>ORBIT ROTATION (มุมมองหมุนรอบตัว)</span>
+          <span class="val" id="valRot">45°</span>
+        </div>
+        <input type="range" id="rotSlider" min="0" max="360" value="45" oninput="updateCad()">
+      </div>
+
+      <!-- สไลเดอร์สเกลโมเดล (0.7x - 1.4x) -->
+      <div class="slider-group">
+        <div class="slider-info">
+          <span>MODEL SCALE (ย่อ-ขยายสัดส่วน)</span>
+          <span class="val" id="valScale">1.00x</span>
+        </div>
+        <input type="range" id="scaleSlider" min="70" max="140" value="100" oninput="updateCad()">
+      </div>
+
+      <!-- สไลเดอร์ปรับความสูงแท่นกรวย (H) -->
+      <div class="slider-group">
+        <div class="slider-info">
+          <span>HOPPER HEIGHT (ความสูงกรวยบรรจุอาหาร)</span>
+          <span class="val" id="valHeight">180 mm</span>
+        </div>
+        <input type="range" id="heightSlider" min="120" max="240" value="180" oninput="updateCad()">
+      </div>
+
+    </div>
+
+    <!-- สรุปสัดส่วนเรขาคณิตวิศวกรรม -->
+    <div class="spec-card">
+      <div class="spec-item">ฐานถาดรองรอบวง: <strong>Ø 320 mm</strong></div>
+      <div class="spec-item">ปากกรวยบน: <strong>Ø 160 mm</strong></div>
+      <div class="spec-item">ช่องเทอาหารอัตโนมัติ: <strong>4 ช่องฐาน</strong></div>
+      <div class="spec-item">โครงแขวนสายลอย: <strong>หูหิ้ว Cross-Bar</strong></div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentColor = '#00f0ff';
+
+    function setColor(hex, label, btn) {
+      currentColor = hex;
+      document.documentElement.style.setProperty('--theme-color', hex);
+      document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('badgeTheme').innerText = `${label} CAD`;
+      updateCad();
+    }
+
+    function updateCad() {
+      const rot = parseFloat(document.getElementById('rotSlider').value);
+      const scale = parseFloat(document.getElementById('scaleSlider').value) / 100;
+      const height = parseFloat(document.getElementById('heightSlider').value);
+
+      document.getElementById('valRot').innerText = `${rot}°`;
+      document.getElementById('valScale').innerText = `${scale.toFixed(2)}x`;
+      document.getElementById('valHeight').innerText = `${Math.round(height)} mm`;
+      document.getElementById('hudStat').innerText = `ROT: ${rot}° | SCALE: ${scale.toFixed(2)}x | H: ${Math.round(height)}`;
+
+      renderFeederBlueprint(rot, scale, height, currentColor);
+    }
+
+    function renderFeederBlueprint(rotDeg, scale, hopperH, color) {
+      const svg = document.getElementById('cadStage');
+      if (!svg) return;
+
+      const cx = 300;
+      const cy = 210;
+      const rad = (rotDeg * Math.PI) / 180;
+      const tilt = 0.42; // มุมเอียงกดสายตาแบบ 3D Perspective View
+
+      // ฟังก์ชันวาดวงรีระนาบ 3D (3D Ellipse Plane)
+      function ellipsePath(radius, zOffset) {
+        const rx = radius * scale;
+        const ry = radius * scale * tilt;
+        const y = cy - (zOffset * scale);
+        return { cx, cy: y, rx, ry };
+      }
+
+      // ฟังก์ชันแปลงพิกัดจุด 3D หมุนรอบแกน Z
+      function get3DPoint(radius, angleOffsetDeg, zOffset) {
+        const a = rad + (angleOffsetDeg * Math.PI / 180);
+        const x = cx + (radius * Math.cos(a) * scale);
+        const y = cy + (radius * Math.sin(a) * scale * tilt) - (zOffset * scale);
+        return { x, y };
+      }
+
+      // เส้นสเก็ตช์เลยมุม (Overshot Line)
+      function overLine(p1, p2, over = 10, dash = '') {
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const ox = (dx / len) * over;
+        const oy = (dy / len) * over;
+        return `<line x1="${p1.x - ox}" y1="${p1.py ? p1.py - oy : p1.y - oy}" 
+                      x2="${p2.x + ox}" y2="${p2.py ? p2.py + oy : p2.y + oy}" 
+                      stroke="${color}" stroke-width="1.2" ${dash ? `stroke-dasharray="${dash}"` : ''}/>`;
+      }
+
+      // ข้อมูลเรขาคณิตแท่นให้อาหารไก่
+      const trayR = 150;           // รัศมีถาดรองอาหารกลมด้านล่าง
+      const trayLipH = 35;         // ความสูงขอบถาด
+      const coneBaseR = 85;        // รัศมีโคนกรวยอาหาร
+      const coneTopR = 55;         // รัศมีปากกรวยบน
+
+      const panBase = ellipsePath(trayR, 0);
+      const panLip = ellipsePath(trayR, trayLipH);
+      const coneBase = ellipsePath(coneBaseR, trayLipH - 5);
+      const coneTop = ellipsePath(coneTopR, trayLipH + hopperH);
+      const handleTop = ellipsePath(20, trayLipH + hopperH + 28);
+
+      let content = `
+        <defs>
+          <pattern id="gridPattern" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="0.7"/>
+          </pattern>
+        </defs>
+        <rect width="600" height="370" fill="url(#gridPattern)"/>
+
+        <!-- 1. เส้นโครงสร้างสายตากลาง (Center Axis) เลยหัวท้าย -->
+        <line x1="${cx}" y1="20" x2="${cx}" y2="350" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="4 4"/>
+        <line x1="80" y1="${cy}" x2="520" y2="${cy}" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="2 2"/>
+
+        <!-- 2. ถาดรองล่าง (Bottom Pan Wireframe) -->
+        <ellipse cx="${panBase.cx}" cy="${panBase.cy}" rx="${panBase.rx}" ry="${panBase.ry}" fill="none" stroke="${color}" stroke-width="1" stroke-dasharray="3 2" opacity="0.6"/>
+        <ellipse cx="${panLip.cx}" cy="${panLip.cy}" rx="${panLip.rx}" ry="${panLip.ry}" fill="rgba(255,255,255,0.02)" stroke="${color}" stroke-width="1.8"/>
+
+        <!-- ขอบถาดซ้าย-ขวา -->
+        <line x1="${panBase.cx - panBase.rx}" y1="${panBase.cy}" x2="${panLip.cx - panLip.rx}" y2="${panLip.cy}" stroke="${color}" stroke-width="1.6"/>
+        <line x1="${panBase.cx + panBase.rx}" y1="${panBase.cy}" x2="${panLip.cx + panLip.rx}" y2="${panLip.cy}" stroke="${color}" stroke-width="1.6"/>
+
+        <!-- 3. ลำตัวกรวยคว่ำ (Conical Hopper Body) -->
+        <ellipse cx="${coneBase.cx}" cy="${coneBase.cy}" rx="${coneBase.rx}" ry="${coneBase.ry}" fill="none" stroke="${color}" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <ellipse cx="${coneTop.cx}" cy="${coneTop.cy}" rx="${coneTop.rx}" ry="${coneTop.ry}" fill="rgba(255,255,255,0.04)" stroke="${color}" stroke-width="1.8"/>
+
+        <!-- เส้นลาดข้างกรวยคว่ำแบบ Overshot ลากเลยมุม -->
+        <line x1="${coneBase.cx - coneBase.rx - 8}" y1="${coneBase.cy + 4}" x2="${coneTop.cx - coneTop.rx + 6}" y2="${coneTop.cy - 6}" stroke="${color}" stroke-width="1.8"/>
+        <line x1="${coneBase.cx + coneBase.rx + 8}" y1="${coneBase.cy + 4}" x2="${coneTop.cx + coneTop.rx - 6}" y2="${coneTop.cy - 6}" stroke="${color}" stroke-width="1.8"/>
+
+        <!-- เส้น Hatching ลายขีดบอกความโค้งของกรวย -->
+      `;
+
+      // ลาย Hatching ทรงกรวยกลมตามมุมหมุน
+      for (let a = 0; a < 360; a += 45) {
+        const bPt = get3DPoint(coneBaseR, a, trayLipH);
+        const tPt = get3DPoint(coneTopR, a, trayLipH + hopperH);
+        content += `<line x1="${bPt.x}" y1="${bPt.y}" x2="${tPt.x}" y2="${tPt.y}" stroke="${color}" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.45"/>`;
+      }
+
+      // 4. ช่องเทอาหารอัตโนมัติรอบฐานล่าง (4 Discharge Ports)
+      for (let p = 0; p < 360; p += 90) {
+        const p1 = get3DPoint(coneBaseR + 8, p - 18, trayLipH);
+        const p2 = get3DPoint(coneBaseR + 8, p + 18, trayLipH);
+        const p3 = get3DPoint(coneBaseR + 8, p + 18, trayLipH + 22);
+        const p4 = get3DPoint(coneBaseR + 8, p - 18, trayLipH + 22);
+        content += `
+          <polygon points="${p1.x},${p1.y} ${p2.x},${p2.y} ${p3.x},${p3.y} ${p4.x},${p4.y}" 
+                   fill="rgba(0,0,0,0.4)" stroke="${color}" stroke-width="1.4"/>
+        `;
+      }
+
+      // 5. โครงหูหิ้วขวางด้านบนและเดือยแขวนสาย (Cross-Handle & Hanger)
+      const hLeft = get3DPoint(coneTopR - 4, 0, trayLipH + hopperH);
+      const hRight = get3DPoint(coneTopR - 4, 180, trayLipH + hopperH);
+      const hTopLeft = get3DPoint(18, 0, trayLipH + hopperH + 28);
+      const hTopRight = get3DPoint(18, 180, trayLipH + hopperH + 28);
+
+      content += `
+        <!-- เสาหูหิ้วซ้าย-ขวา -->
+        <line x1="${hLeft.x}" y1="${hLeft.y}" x2="${hTopLeft.x}" y2="${hTopLeft.y}" stroke="${color}" stroke-width="2.2"/>
+        <line x1="${hRight.x}" y1="${hRight.y}" x2="${hTopRight.x}" y2="${hTopRight.y}" stroke="${color}" stroke-width="2.2"/>
+        <!-- คานจับขวาง -->
+        <line x1="${hTopLeft.x - 6}" y1="${hTopLeft.y}" x2="${hTopRight.x + 6}" y2="${hTopRight.y}" stroke="${color}" stroke-width="2.6"/>
+        <!-- เดือยแขวนกลาง (Center Hanging Eyelet) -->
+        <ellipse cx="${cx}" cy="${cy - (trayLipH + hopperH + 34) * scale}" rx="${7 * scale}" ry="${5 * scale}" fill="none" stroke="${color}" stroke-width="2"/>
+        <circle cx="${cx}" cy="${cy - (trayLipH + hopperH + 34) * scale}" r="${2 * scale}" fill="#fff"/>
+      `;
+
+      // 6. เส้นบอกขนาดมิติทางวิศวกรรม (Engineering Laser Dimensions)
+      const dimX = panLip.cx + panLip.rx + 28;
+      const dimTopY = cy - ((trayLipH + hopperH) * scale);
+      const dimBotY = cy;
+
+      content += `
+        <!-- เส้นวัดความสูงรวม H -->
+        <g stroke="${color}" opacity="0.85">
+          <line x1="${dimX}" y1="${dimBotY}" x2="${dimX}" y2="${dimTopY}" stroke-width="1.2"/>
+          <line x1="${dimX - 8}" y1="${dimBotY}" x2="${dimX + 8}" y2="${dimBotY}" stroke-width="1.2"/>
+          <line x1="${dimX - 8}" y1="${dimTopY}" x2="${dimX + 8}" y2="${dimTopY}" stroke-width="1.2"/>
+          <text x="${dimX + 10}" y="${(dimBotY + dimTopY)/2 + 4}" fill="${color}" font-size="11" font-weight="bold" font-family="monospace">H:${Math.round(hopperH)}mm</text>
+        </g>
+
+        <!-- ป้ายกำกับชื่อชิ้นส่วนเชิงสเก็ตช์ -->
+        <text x="30" y="50" fill="${color}" font-size="11" font-family="monospace">POULTRY FEEDER / WIREFRAME CAD</text>
+        <text x="30" y="68" fill="rgba(255,255,255,0.4)" font-size="9" font-family="monospace">CONICAL HOPPER & GRAVITY TRAY</text>
+      `;
+
+      svg.innerHTML = content;
+    }
+
+    // เริ่มต้นระบบครั้งแรก
+    window.addEventListener('DOMContentLoaded', () => {
+      updateCad();
+    });
+  </script>
+</body>
+</html>
