@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Architectural Blueprint CAD Engine - 5-in-1 Master Showcase</title>
+  <style>
+    :root {
+      --bg: #050b12;
+      --panel: #0b1522;
+      --panel-border: #162a42;
+      --text: #e2eafc;
+      --muted: #748da6;
+      --theme: #00f0ff;
+      --laser-amber: #ffb703;
+      --laser-cyan: #00f0ff;
+      --laser-green: #52b788;
+      --phi: 1.618;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding-bottom: 24px;
+      overflow-x: hidden;
+    }
+
+    header {
+      width: 100%;
+      max-width: 540px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--panel-border);
+      background: rgba(11, 21, 34, 0.9);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .badge {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--theme);
+      color: var(--theme);
+      font-weight: bold;
+      letter-spacing: 1px;
+      font-family: monospace;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 540px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* สลับ 5 โมเดลวิศวกรรม */
+    .model-switch {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+    }
+    .switch-btn {
+      height: 44px;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      color: var(--muted);
+      border-radius: 6px;
+      font-size: 8.5px;
+      font-weight: bold;
+      font-family: monospace;
+      cursor: pointer;
+      transition: 0.2s;
+      padding: 2px 1px;
+      line-height: 1.25;
+      text-align: center;
+    }
+    .switch-btn.active {
+      border-color: var(--theme);
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+    }
+
+    /* 3D Viewport */
+    .cad-viewport {
+      width: 100%;
+      aspect-ratio: 1.618 / 1;
+      background: #03070d;
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.9);
+      touch-action: none;
+    }
+    svg#cadStage {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .hud-stat {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 9.5px;
+      color: var(--theme);
+      background: rgba(3, 7, 13, 0.85);
+      padding: 4px 8px;
+      border-radius: 3px;
+      border-left: 2px solid var(--theme);
+      pointer-events: none;
+      font-family: monospace;
+      z-index: 5;
+    }
+
+    .viewport-tools {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 6px;
+      z-index: 5;
+    }
+    .tool-btn {
+      background: rgba(11, 21, 34, 0.85);
+      border: 1px solid var(--panel-border);
+      color: var(--theme);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-family: monospace;
+      font-weight: bold;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+    }
+    .tool-btn.active {
+      background: var(--theme);
+      color: #000;
+    }
+
+    .control-panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .color-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .color-btn {
+      height: 32px;
+      background: transparent;
+      border: 1px solid var(--panel-border);
+      color: var(--muted);
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: monospace;
+      transition: 0.2s;
+    }
+    .color-btn.active {
+      border-color: var(--theme);
+      color: #fff;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .slider-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: monospace;
+    }
+    .slider-info span.val {
+      color: var(--theme);
+      font-weight: bold;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 22px;
+      background: transparent;
+      margin: 0;
+      cursor: pointer;
+    }
+    input[type=range]:focus { outline: none; }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 5px;
+      background: #060c14;
+      border: 1px solid var(--panel-border);
+      border-radius: 3px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 18px;
+      width: 18px;
+      border-radius: 50%;
+      background: var(--theme);
+      box-shadow: 0 0 10px var(--theme);
+      cursor: pointer;
+      margin-top: -7px;
+      border: 2px solid #fff;
+    }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .btn-action {
+      height: 38px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: bold;
+      font-family: monospace;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: 0.2s;
+    }
+    .btn-export {
+      background: transparent;
+      border: 1px solid var(--theme);
+      color: var(--theme);
+    }
+    .btn-print {
+      background: var(--theme);
+      border: 1px solid var(--theme);
+      color: #000;
+      box-shadow: 0 0 14px rgba(0, 240, 255, 0.3);
+    }
+
+    .spec-card {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 10.5px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      font-family: monospace;
+    }
+    .spec-item { color: var(--muted); }
+    .spec-item strong { color: var(--text); }
+
+    /* ====================================================
+       STRICT SINGLE-PAGE PRINT ENGINE (SAFARI-PROOF A4)
+       ==================================================== */
+    #printLayoutSheet {
+      display: none;
+    }
+
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 0 !important;
+      }
+      html, body {
+        width: 100% !important;
+        height: 100% !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+      }
+      header, .app-container {
+        display: none !important;
+      }
+      
+      #printLayoutSheet {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 95% !important;
+        max-width: 275mm !important;
+        height: 156mm !important;
+        max-height: 156mm !important;
+        margin: 3mm auto 0 auto !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        background: #ffffff !important;
+        page-break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-inside: avoid !important;
+        break-after: avoid !important;
+      }
+
+      .sheet-outer-border {
+        width: 100% !important;
+        height: 100% !important;
+        border: 2px solid #000 !important;
+        padding: 1.5mm !important;
+        display: flex !important;
+        flex-direction: column !important;
+        box-sizing: border-box !important;
+      }
+
+      .sheet-inner-border {
+        width: 100% !important;
+        height: 100% !important;
+        border: 1px solid #000 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        box-sizing: border-box !important;
+      }
+
+      .drawing-header {
+        height: 8mm !important;
+        border-bottom: 1.5px solid #000 !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 0 3mm !important;
+        font-family: "Courier New", Courier, monospace !important;
+      }
+      .drawing-header .comp-name {
+        font-size: 9.5pt !important;
+        font-weight: 900 !important;
+        letter-spacing: 1px !important;
+      }
+      .drawing-header .standard-tag {
+        font-size: 6pt !important;
+        font-weight: bold !important;
+        border: 1px solid #000 !important;
+        padding: 0.5mm 1.5mm !important;
+      }
+
+      .drawing-canvas-area {
+        flex: 1 !important;
+        width: 100% !important;
+        max-height: 110mm !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 1mm !important;
+        box-sizing: border-box !important;
+      }
+      .drawing-canvas-area svg {
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 110mm !important;
+        display: block !important;
+      }
+
+      .title-block-container {
+        height: 24mm !important;
+        max-height: 24mm !important;
+        border-top: 1.5px solid #000 !important;
+        display: grid !important;
+        grid-template-columns: 1.3fr 1.7fr 1fr !important;
+        font-family: "Courier New", Courier, monospace !important;
+        box-sizing: border-box !important;
+      }
+      .tb-col {
+        border-right: 1px solid #000 !important;
+        padding: 1mm 2.5mm !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        font-size: 6pt !important;
+      }
+      .tb-col:last-child {
+        border-right: none !important;
+      }
+      .tb-label {
+        font-size: 5pt !important;
+        color: #444 !important;
+        text-transform: uppercase !important;
+      }
+      .tb-val {
+        font-size: 6.5pt !important;
+        font-weight: bold !important;
+        color: #000 !important;
+      }
+      .tb-title {
+        font-size: 8pt !important;
+        font-weight: 900 !important;
+        margin: 0.5mm 0 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <span class="badge" id="badgeTheme">CAD ENGINE</span>
+      <strong style="margin-left: 8px; font-size: 13px;">VECTOR ENGINE PRO</strong>
+    </div>
+    <div style="font-size: 10px; color: var(--muted); font-family: monospace;">GOLDEN RATIO 1:1.618</div>
+  </header>
+
+  <div class="app-container">
+    
+    <!-- ปุ่มสลับ 5 โมเดล -->
+    <div class="model-switch">
+      <button class="switch-btn active" id="btnModelFeeder" onclick="switchModel('feeder')">🌾 FEEDER<br><small>ถาดไก่</small></button>
+      <button class="switch-btn" id="btnModelGear" onclick="switchModel('gear')">⚙️ GEAR<br><small>เฟืองกลึง</small></button>
+      <button class="switch-btn" id="btnModelSine" onclick="switchModel('sine')">⚡ SINE<br><small>3-Phase</small></button>
+      <button class="switch-btn" id="btnModelNode" onclick="switchModel('node')">🌐 NODE<br><small>สเปซเฟรม</small></button>
+      <button class="switch-btn" id="btnModelHyper" onclick="switchModel('hyper')">♾️ HYPER<br><small>ไฮเพอร์โบลอยด์</small></button>
+    </div>
+
+    <!-- 3D Viewport บนมือถือ -->
+    <div class="cad-viewport" id="viewportTouch">
+      <div class="hud-stat" id="hudStat">ROT: 45° | TILT: 30°</div>
+      <div class="viewport-tools">
+        <button class="tool-btn" id="btnSpin" onclick="toggleSpin()">🔄 AUTO-SPIN</button>
+      </div>
+      <svg id="cadStage" viewBox="0 0 600 370"></svg>
+    </div>
+
+    <div class="control-panel">
+      
+      <div class="color-tabs">
+        <button class="color-btn active" onclick="setColor('#00f0ff', 'CYAN BLUEPRINT', this)">CYAN</button>
+        <button class="color-btn" onclick="setColor('#52b788', 'BIO GREEN', this)">GREEN</button>
+        <button class="color-btn" onclick="setColor('#ffb703', 'AMBER RADAR', this)">AMBER</button>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-info">
+          <span>ORBIT ROTATION (มุมหมุนแกนดิ่ง 360°)</span>
+          <span class="val" id="valRot">45°</span>
+        </div>
+        <input type="range" id="rotSlider" min="0" max="360" value="45" oninput="stopSpin(); updateRender();">
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-info">
+          <span>PERSPECTIVE TILT (มุมก้ม-เงยสายตา)</span>
+          <span class="val" id="valTilt">30°</span>
+        </div>
+        <input type="range" id="tiltSlider" min="10" max="75" value="30" oninput="updateRender()">
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-info">
+          <span>MODEL SCALE (อัตราขยายเรขาคณิต)</span>
+          <span class="val" id="valScale">1.00x</span>
+        </div>
+        <input type="range" id="scaleSlider" min="60" max="130" value="100" oninput="updateRender()">
+      </div>
+
+      <div class="slider-group" id="customSliderGroup">
+        <div class="slider-info">
+          <span id="customSliderLabel">HOPPER HEIGHT (ความสูงกรวยบรรจุ)</span>
+          <span class="val" id="valCustom">180 mm</span>
+        </div>
+        <input type="range" id="customSlider" min="120" max="230" value="180" oninput="updateRender()">
+      </div>
+
+      <div class="action-row">
+        <button class="btn-action btn-export" onclick="exportSVG()">💾 EXPORT SVG</button>
+        <button class="btn-action btn-print" onclick="printA4Layout()">🖨️ PRINT A4 BLUEPRINT</button>
+      </div>
+
+    </div>
+
+    <div class="spec-card" id="specCard"></div>
+
+  </div>
+
+  <!-- แผ่นแบบ A4 LANDSCAPE -->
+  <div id="printLayoutSheet">
+    <div class="sheet-outer-border">
+      <div class="sheet-inner-border">
+        
+        <div class="drawing-header">
+          <div class="comp-name">CHIANGMAI63 ENGINEERING CAD LAB</div>
+          <div class="standard-tag">ISO-128 / ARCHITECTURAL WIREFRAME SPEC</div>
+        </div>
+
+        <div class="drawing-canvas-area" id="printCanvasContainer"></div>
+
+        <div class="title-block-container">
+          <div class="tb-col">
+            <div>
+              <div class="tb-label">PROJECT NAME:</div>
+              <div class="tb-val">BIO-ENGINEERING & ADVANCED MATH SHOWCASE</div>
+            </div>
+            <div>
+              <div class="tb-label">RUNTIME ENGINE:</div>
+              <div class="tb-val">VECTOR ENGINE PRO / iOS SAFARI</div>
+            </div>
+            <div>
+              <div class="tb-label">SCALE RATIO:</div>
+              <div class="tb-val">1:1.618 GOLDEN (PARAMETRIC)</div>
+            </div>
+          </div>
+
+          <div class="tb-col">
+            <div class="tb-label">DRAWING TITLE:</div>
+            <div class="tb-title" id="printDrawingTitle">POULTRY FEEDER 3D WIREFRAME</div>
+            <div style="font-size: 7.2px; color: #222;" id="printModelDetails">
+              BASE BASIN Ø320mm | CONICAL HOPPER H:180mm | 4-PORT GRAVITY FEED
+            </div>
+          </div>
+
+          <div class="tb-col">
+            <div>
+              <div class="tb-label">DWG NO:</div>
+              <div class="tb-val" id="printDwgNo">CM63-CAD-2026-001</div>
+            </div>
+            <div>
+              <div class="tb-label">STATUS / SHEET:</div>
+              <div class="tb-val">LOCKED 1 OF 1 / REV 5.5</div>
+            </div>
+            <div>
+              <div class="tb-label">APPROVED BY:</div>
+              <div class="tb-val">CHIEF ENGINEER / CHUANG KAO</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let activeModel = 'feeder';
+    let currentColor = '#00f0ff';
+    let isSpinning = false;
+    let spinAnimId = null;
+
+    function switchModel(m) {
+      activeModel = m;
+      document.getElementById('btnModelFeeder').classList.toggle('active', m === 'feeder');
+      document.getElementById('btnModelGear').classList.toggle('active', m === 'gear');
+      document.getElementById('btnModelSine').classList.toggle('active', m === 'sine');
+      document.getElementById('btnModelNode').classList.toggle('active', m === 'node');
+      document.getElementById('btnModelHyper').classList.toggle('active', m === 'hyper');
+
+      const customLabel = document.getElementById('customSliderLabel');
+      const customSlider = document.getElementById('customSlider');
+
+      if (m === 'feeder') {
+        customLabel.innerText = "HOPPER HEIGHT (ความสูงกรวยบรรจุ)";
+        customSlider.min = 120;
+        customSlider.max = 230;
+        customSlider.value = 180;
+      } else if (m === 'gear') {
+        customLabel.innerText = "TEETH COUNT (จำนวนฟันเฟือง)";
+        customSlider.min = 12;
+        customSlider.max = 32;
+        customSlider.value = 21;
+      } else if (m === 'sine') {
+        customLabel.innerText = "FREQUENCY CYCLES (จำนวนรอบคลื่น)";
+        customSlider.min = 1;
+        customSlider.max = 6;
+        customSlider.value = 2;
+      } else if (m === 'node') {
+        customLabel.innerText = "STRUT SPAN (ระยะคานต่อโครงถัก)";
+        customSlider.min = 70;
+        customSlider.max = 145;
+        customSlider.value = 105;
+      } else {
+        customLabel.innerText = "WAIST RADIUS (รัศมีคอดกิ่วเอวกลาง)";
+        customSlider.min = 25;
+        customSlider.max = 85;
+        customSlider.value = 45;
+      }
+      updateRender();
+    }
+
+    function setColor(hex, label, btn) {
+      currentColor = hex;
+      document.documentElement.style.setProperty('--theme', hex);
+      document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('badgeTheme').innerText = `${label.toUpperCase()}`;
+      updateRender();
+    }
+
+    function toggleSpin() {
+      isSpinning = !isSpinning;
+      document.getElementById('btnSpin').classList.toggle('active', isSpinning);
+      if (isSpinning) {
+        runSpin();
+      } else {
+        cancelAnimationFrame(spinAnimId);
+      }
+    }
+
+    function stopSpin() {
+      if (isSpinning) {
+        isSpinning = false;
+        document.getElementById('btnSpin').classList.remove('active');
+        cancelAnimationFrame(spinAnimId);
+      }
+    }
+
+    function runSpin() {
+      if (!isSpinning) return;
+      const slider = document.getElementById('rotSlider');
+      let val = (parseFloat(slider.value) + 0.6) % 360;
+      slider.value = val;
+      updateRender();
+      spinAnimId = requestAnimationFrame(runSpin);
+    }
+
+    // ฟังก์ชัน Print A4 สไตล์วิศวกรรม
+    function printA4Layout() {
+      stopSpin();
+
+      const customVal = parseFloat(document.getElementById('customSlider').value);
+      const rot = parseFloat(document.getElementById('rotSlider').value);
+      const tilt = parseFloat(document.getElementById('tiltSlider').value);
+      const baseScale = parseFloat(document.getElementById('scaleSlider').value) / 100;
+
+      const titleEl = document.getElementById('printDrawingTitle');
+      const detailEl = document.getElementById('printModelDetails');
+      const dwgNoEl = document.getElementById('printDwgNo');
+
+      if (activeModel === 'feeder') {
+        titleEl.innerText = "POULTRY FEEDER 3D WIREFRAME";
+        detailEl.innerText = `CONICAL HOPPER H:${Math.round(customVal)}mm | BASE Ø320mm | VIEW: ROT ${Math.round(rot)}°, TILT ${Math.round(tilt)}°`;
+        dwgNoEl.innerText = "CM63-FDR-001-A4";
+      } else if (activeModel === 'gear') {
+        titleEl.innerText = "MECHANICAL INVOLUTE SPUR GEAR";
+        detailEl.innerText = `TEETH: ${Math.round(customVal)}T | PITCH Ø260mm | SHAFT Ø50mm KEYWAY | ROT ${Math.round(rot)}°, TILT ${Math.round(tilt)}°`;
+        dwgNoEl.innerText = "CM63-GEAR-002-A4";
+      } else if (activeModel === 'sine') {
+        titleEl.innerText = "3-PHASE AC VOLTAGE WAVEFORM";
+        detailEl.innerText = `380V SYSTEM | ${customVal} CYCLES | 120° PHASE DISPLACEMENT | ROT ${Math.round(rot)}°, TILT ${Math.round(tilt)}°`;
+        dwgNoEl.innerText = "CM63-SINE-003-A4";
+      } else if (activeModel === 'node') {
+        titleEl.innerText = "3D STRUCTURAL TRUSS NODE (SPACE FRAME)";
+        detailEl.innerText = `SPHERE HUB Ø80mm | 6-AXIS STRUTS L:${Math.round(customVal)}mm | ROT ${Math.round(rot)}°, TILT ${Math.round(tilt)}°`;
+        dwgNoEl.innerText = "CM63-NODE-004-A4";
+      } else {
+        titleEl.innerText = "RULED HYPERBOLOID & DUAL-HELIX TOWER";
+        detailEl.innerText = `EQUATION: x²/a² + y²/b² - z²/c² = 1 | WAIST R:${Math.round(customVal)}mm | ROT ${Math.round(rot)}°, TILT ${Math.round(tilt)}°`;
+        dwgNoEl.innerText = "CM63-HYPER-005-A4";
+      }
+
+      const container = document.getElementById('printCanvasContainer');
+      const safePrintScale = baseScale * 0.85;
+      const printCyShift = (activeModel === 'feeder') ? 275 : 190;
+
+      let innerSvg = '';
+      if (activeModel === 'feeder') {
+        innerSvg = generateFeederSVG(rot, tilt, safePrintScale, customVal, '#000000', printCyShift);
+      } else if (activeModel === 'gear') {
+        innerSvg = generateGearSVG(rot, tilt, safePrintScale, customVal, '#000000', printCyShift);
+      } else if (activeModel === 'sine') {
+        innerSvg = generateSineSVG(rot, tilt, safePrintScale, customVal, '#000000', printCyShift);
+      } else if (activeModel === 'node') {
+        innerSvg = generateNodeSVG(rot, tilt, safePrintScale, customVal, '#000000', printCyShift);
+      } else {
+        innerSvg = generateHyperboloidSVG(rot, tilt, safePrintScale, customVal, '#000000', printCyShift);
+      }
+
+      container.innerHTML = `<svg viewBox="0 0 600 370" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">${innerSvg}</svg>`;
+
+      setTimeout(() => {
+        window.print();
+      }, 300);
+    }
+
+    // Export SVG
+    async function exportSVG() {
+      const svg = document.getElementById('cadStage');
+      if (!svg) return;
+
+      const serializer = new XMLSerializer();
+      let source = serializer.serializeToString(svg);
+      if (!source.match(/^<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)) {
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+      }
+      source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+
+      const fileName = `${activeModel}_blueprint_${Date.now()}.svg`;
+      const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+
+      if (navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: 'image/svg+xml' })] })) {
+        try {
+          const file = new File([blob], fileName, { type: 'image/svg+xml' });
+          await navigator.share({
+            title: 'Export SVG Blueprint',
+            text: `CAD Model: ${activeModel.toUpperCase()}`,
+            files: [file]
+          });
+          return;
+        } catch (err) {
+          if (err.name === 'AbortError') return;
+        }
+      }
+
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName;
+      link.target = "_blank";
+      document.body.appendChild(link);
+      link.click();
+
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }, 1000);
+    }
+
+    // Touch & Drag Viewport
+    let isTouching = false;
+    let startX = 0;
+    let startRot = 0;
+    const vp = document.getElementById('viewportTouch');
+
+    vp.addEventListener('touchstart', (e) => {
+      isTouching = true;
+      startX = e.touches[0].clientX;
+      startRot = parseFloat(document.getElementById('rotSlider').value);
+      stopSpin();
+    }, { passive: true });
+
+    vp.addEventListener('touchmove', (e) => {
+      if (!isTouching) return;
+      const dx = e.touches[0].clientX - startX;
+      let newRot = (startRot + dx * 0.8) % 360;
+      if (newRot < 0) newRot += 360;
+      document.getElementById('rotSlider').value = newRot;
+      updateRender();
+    }, { passive: true });
+
+    vp.addEventListener('touchend', () => { isTouching = false; });
+
+    function updateRender() {
+      const rot = parseFloat(document.getElementById('rotSlider').value);
+      const tiltDeg = parseFloat(document.getElementById('tiltSlider').value);
+      const scale = parseFloat(document.getElementById('scaleSlider').value) / 100;
+      const customVal = parseFloat(document.getElementById('customSlider').value);
+
+      document.getElementById('valRot').innerText = `${Math.round(rot)}°`;
+      document.getElementById('valTilt').innerText = `${Math.round(tiltDeg)}°`;
+      document.getElementById('valScale').innerText = `${scale.toFixed(2)}x`;
+      
+      let customDisplay = '';
+      if (activeModel === 'feeder') customDisplay = `${Math.round(customVal)} mm`;
+      else if (activeModel === 'gear') customDisplay = `${Math.round(customVal)} ซี่`;
+      else if (activeModel === 'sine') customDisplay = `${customVal} Cycles`;
+      else if (activeModel === 'node') customDisplay = `L:${Math.round(customVal)} mm`;
+      else customDisplay = `Waist Ø${Math.round(customVal * 2)} mm`;
+
+      document.getElementById('valCustom').innerText = customDisplay;
+      document.getElementById('hudStat').innerText = `MODEL: ${activeModel.toUpperCase()} | ROT: ${Math.round(rot)}° | TILT: ${Math.round(tiltDeg)}°`;
+
+      const spec = document.getElementById('specCard');
+      const stage = document.getElementById('cadStage');
+
+      if (activeModel === 'feeder') {
+        spec.innerHTML = `
+          <div class="spec-item">เส้นผ่านศูนย์กลางถาด: <strong>Ø 320 mm</strong></div>
+          <div class="spec-item">ปากกรวยบน: <strong>Ø 160 mm</strong></div>
+          <div class="spec-item">ช่องจ่ายแรงโน้มถ่วง: <strong>4 ทิศรอบฐาน</strong></div>
+          <div class="spec-item">คานหูหิ้ว: <strong>พร้อมสลัก Eyelet</strong></div>
+        `;
+        stage.innerHTML = generateFeederSVG(rot, tiltDeg, scale, customVal, currentColor, 270);
+      } else if (activeModel === 'gear') {
+        spec.innerHTML = `
+          <div class="spec-item">พิตช์ไดอะมิเตอร์: <strong>Ø 260 mm</strong></div>
+          <div class="spec-item">จำนวนฟันกลึง: <strong>${Math.round(customVal)} ฟัน</strong></div>
+          <div class="spec-item">รูสวมเพลาใน: <strong>Ø 50 mm + Keyway</strong></div>
+          <div class="spec-item">ก้านล้อสี่แฉก: <strong>Web Spokes x4</strong></div>
+        `;
+        stage.innerHTML = generateGearSVG(rot, tiltDeg, scale, customVal, currentColor, 200);
+      } else if (activeModel === 'sine') {
+        spec.innerHTML = `
+          <div class="spec-item">ระบบไฟฟ้ากระแสสลับ: <strong>3-Phase AC (380V)</strong></div>
+          <div class="spec-item">การเลื่อนมุมเฟส: <strong>Δθ = 120° Balanced</strong></div>
+          <div class="spec-item">เฟส A / B / C: <strong>0° / 120° / 240°</strong></div>
+          <div class="spec-item">โครงข่ายเวกเตอร์: <strong>3D Harmonic Mesh</strong></div>
+        `;
+        stage.innerHTML = generateSineSVG(rot, tiltDeg, scale, customVal, currentColor, 200);
+      } else if (activeModel === 'node') {
+        spec.innerHTML = `
+          <div class="spec-item">ดุมศูนย์กลาง: <strong>Sphere Hub Ø 80 mm</strong></div>
+          <div class="spec-item">แกนต่อโครงถัก: <strong>6-Axis Orthogonal Hub</strong></div>
+          <div class="spec-item">แป้นแปลนยึดน็อต: <strong>Flange Plates & Bolts</strong></div>
+          <div class="spec-item">โครงสร้างรับแรง: <strong>Tension/Comp Matrix</strong></div>
+        `;
+        stage.innerHTML = generateNodeSVG(rot, tiltDeg, scale, customVal, currentColor, 190);
+      } else {
+        spec.innerHTML = `
+          <div class="spec-item">สมการพื้นผิว: <strong>x²/a² + y²/b² - z²/c² = 1</strong></div>
+          <div class="spec-item">เรขาคณิตเส้นตรง: <strong>Doubly Ruled Surface</strong></div>
+          <div class="spec-item">เกลียวคู่ดีเอ็นเอ: <strong>Dual Archimedean Helix</strong></div>
+          <div class="spec-item">การกระจายแรง: <strong>Asymptotic Load Lines</strong></div>
+        `;
+        stage.innerHTML = generateHyperboloidSVG(rot, tiltDeg, scale, customVal, currentColor, 190);
+      }
+    }
+
+    // 1. GENERATE FEEDER SVG
+    function generateFeederSVG(rotDeg, tiltDeg, scale, hopperH, color, cyPos) {
+      const cx = 300, cy = cyPos;
+      const rad = (rotDeg * Math.PI) / 180;
+      const tilt = Math.sin((tiltDeg * Math.PI) / 180);
+
+      function getPoint(r, angleOffsetDeg, z) {
+        const a = rad + (angleOffsetDeg * Math.PI / 180);
+        return {
+          x: cx + (r * Math.cos(a) * scale),
+          y: cy + (r * Math.sin(a) * scale * tilt) - (z * scale)
+        };
+      }
+
+      function ellipseObj(r, z) {
+        return { cx, cy: cy - (z * scale), rx: r * scale, ry: r * scale * tilt };
+      }
+
+      const trayR = 155, trayLipH = 35, coneBaseR = 88, coneTopR = 58;
+      const pBase = ellipseObj(trayR, 0);
+      const pLip = ellipseObj(trayR, trayLipH);
+      const cBase = ellipseObj(coneBaseR, trayLipH - 4);
+      const cTop = ellipseObj(coneTopR, trayLipH + hopperH);
+
+      let svgHtml = `
+        <defs>
+          <pattern id="gridFdr_${cyPos}" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="${color}" stroke-opacity="0.05" stroke-width="0.8"/>
+          </pattern>
+        </defs>
+        <rect width="600" height="370" fill="url(#gridFdr_${cyPos})"/>
+
+        <line x1="${cx}" y1="40" x2="${cx}" y2="350" stroke="${color}" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4 4"/>
+        <line x1="80" y1="${cy}" x2="520" y2="${cy}" stroke="${color}" stroke-opacity="0.1" stroke-width="1" stroke-dasharray="2 2"/>
+
+        <ellipse cx="${pBase.cx}" cy="${pBase.cy}" rx="${pBase.rx}" ry="${pBase.ry}" fill="none" stroke="${color}" stroke-width="1" stroke-dasharray="3 2" opacity="0.5"/>
+        <ellipse cx="${pLip.cx}" cy="${pLip.cy}" rx="${pLip.rx}" ry="${pLip.ry}" fill="none" stroke="${color}" stroke-width="1.8"/>
+        <line x1="${pBase.cx - pBase.rx}" y1="${pBase.cy}" x2="${pLip.cx - pLip.rx}" y2="${pLip.cy}" stroke="${color}" stroke-width="1.6"/>
+        <line x1="${pBase.cx + pBase.rx}" y1="${pBase.cy}" x2="${pLip.cx + pLip.rx}" y2="${pLip.cy}" stroke="${color}" stroke-width="1.6"/>
+
+        <ellipse cx="${cBase.cx}" cy="${cBase.cy}" rx="${cBase.rx}" ry="${cBase.ry}" fill="none" stroke="${color}" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <ellipse cx="${cTop.cx}" cy="${cTop.cy}" rx="${cTop.rx}" ry="${cTop.ry}" fill="none" stroke="${color}" stroke-width="1.8"/>
+
+        <line x1="${cBase.cx - cBase.rx - 6}" y1="${cBase.cy + 3}" x2="${cTop.cx - cTop.rx + 5}" y2="${cTop.cy - 5}" stroke="${color}" stroke-width="1.8"/>
+        <line x1="${cBase.cx + cBase.rx + 6}" y1="${cBase.cy + 3}" x2="${cTop.cx + cTop.rx - 5}" y2="${cTop.cy - 5}" stroke="${color}" stroke-width="1.8"/>
+      `;
+
+      for (let a = 0; a < 360; a += 45) {
+        const b = getPoint(coneBaseR, a, trayLipH);
+        const t = getPoint(coneTopR, a, trayLipH + hopperH);
+        svgHtml += `<line x1="${b.x}" y1="${b.y}" x2="${t.x}" y2="${t.y}" stroke="${color}" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.45"/>`;
+      }
+
+      for (let p = 0; p < 360; p += 90) {
+        const p1 = getPoint(coneBaseR + 8, p - 18, trayLipH);
+        const p2 = getPoint(coneBaseR + 8, p + 18, trayLipH);
+        const p3 = getPoint(coneBaseR + 8, p + 18, trayLipH + 22);
+        const p4 = getPoint(coneBaseR + 8, p - 18, trayLipH + 22);
+        svgHtml += `<polygon points="${p1.x},${p1.y} ${p2.x},${p2.y} ${p3.x},${p3.y} ${p4.x},${p4.y}" fill="none" stroke="${color}" stroke-width="1.4"/>`;
+      }
+
+      const h1 = getPoint(coneTopR - 4, 0, trayLipH + hopperH);
+      const h2 = getPoint(coneTopR - 4, 180, trayLipH + hopperH);
+      const ht1 = getPoint(18, 0, trayLipH + hopperH + 28);
+      const ht2 = getPoint(18, 180, trayLipH + hopperH + 28);
+
+      svgHtml += `
+        <line x1="${h1.x}" y1="${h1.y}" x2="${ht1.x}" y2="${ht1.y}" stroke="${color}" stroke-width="2.2"/>
+        <line x1="${h2.x}" y1="${h2.y}" x2="${ht2.x}" y2="${ht2.y}" stroke="${color}" stroke-width="2.2"/>
+        <line x1="${ht1.x - 6}" y1="${ht1.y}" x2="${ht2.x + 6}" y2="${ht2.y}" stroke="${color}" stroke-width="2.6"/>
+        <ellipse cx="${cx}" cy="${cy - (trayLipH + hopperH + 34) * scale}" rx="${7 * scale}" ry="${5 * scale * tilt}" fill="none" stroke="${color}" stroke-width="2"/>
+        <circle cx="${cx}" cy="${cy - (trayLipH + hopperH + 34) * scale}" r="${2 * scale}" fill="${color}"/>
+      `;
+
+      const dimX = pLip.cx + pLip.rx + 24;
+      const dimTopY = cy - ((trayLipH + hopperH) * scale);
+      svgHtml += `
+        <g stroke="${color}" opacity="0.85">
+          <line x1="${dimX}" y1="${cy}" x2="${dimX}" y2="${dimTopY}" stroke-width="1.2"/>
+          <line x1="${dimX - 6}" y1="${cy}" x2="${dimX + 6}" y2="${cy}" stroke-width="1.2"/>
+          <line x1="${dimX - 6}" y1="${dimTopY}" x2="${dimX + 6}" y2="${dimTopY}" stroke-width="1.2"/>
+          <text x="${dimX + 8}" y="${(cy + dimTopY)/2 + 4}" fill="${color}" font-size="10.5" font-weight="bold" font-family="monospace">H:${Math.round(hopperH)}mm</text>
+        </g>
+        <text x="20" y="340" fill="${color}" font-size="10.5" font-family="monospace" opacity="0.9">POULTRY FEEDER / WIREFRAME CAD</text>
+        <text x="20" y="355" fill="${color}" font-size="9" font-family="monospace" opacity="0.5">CONICAL BODY & GRAVITY DISCHARGE</text>
+      `;
+
+      return svgHtml;
+    }
+
+    // 2. GENERATE GEAR SVG
+    function generateGearSVG(rotDeg, tiltDeg, scale, teethCount, color, cyPos) {
+      const cx = 300, cy = cyPos;
+      const rad = (rotDeg * Math.PI) / 180;
+      const tilt = Math.sin((tiltDeg * Math.PI) / 180);
+      const gearThick = 40;
+
+      function gearPt(r, angleOffsetDeg, z) {
+        const a = rad + (angleOffsetDeg * Math.PI / 180);
+        return {
+          x: cx + (r * Math.cos(a) * scale),
+          y: cy + (r * Math.sin(a) * scale * tilt) - (z * scale)
+        };
+      }
+
+      const rOuter = 145, rPitch = 130, rRoot = 110, rHub = 45, rShaft = 22;
+      let topPath = '', botPath = '';
+      const totalPoints = teethCount * 4;
+
+      for (let i = 0; i < totalPoints; i++) {
+        const step = (360 / totalPoints) * i;
+        const mod = i % 4;
+        let r = (mod === 1 || mod === 2) ? rOuter : rRoot;
+
+        const ptTop = gearPt(r, step, gearThick / 2);
+        const ptBot = gearPt(r, step, -gearThick / 2);
+
+        topPath += `${i === 0 ? 'M' : 'L'} ${ptTop.x},${ptTop.y} `;
+        botPath += `${i === 0 ? 'M' : 'L'} ${ptBot.x},${ptBot.y} `;
+      }
+      topPath += 'Z';
+      botPath += 'Z';
+
+      let svgHtml = `
+        <defs>
+          <pattern id="gridGear_${cyPos}" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="${color}" stroke-opacity="0.05" stroke-width="0.8"/>
+          </pattern>
+        </defs>
+        <rect width="600" height="370" fill="url(#gridGear_${cyPos})"/>
+
+        <line x1="${cx}" y1="35" x2="${cx}" y2="350" stroke="${color}" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4 4"/>
+        <line x1="80" y1="${cy}" x2="520" y2="${cy}" stroke="${color}" stroke-opacity="0.1" stroke-width="1" stroke-dasharray="2 2"/>
+
+        <ellipse cx="${cx}" cy="${cy - (gearThick/2 * scale)}" rx="${rPitch * scale}" ry="${rPitch * scale * tilt}" 
+                 fill="none" stroke="${color}" stroke-width="1" stroke-dasharray="4 4" opacity="0.5"/>
+
+        <path d="${botPath}" fill="none" stroke="${color}" stroke-width="1.2" stroke-dasharray="2 2" opacity="0.6"/>
+      `;
+
+      for (let i = 0; i < totalPoints; i += 2) {
+        const step = (360 / totalPoints) * i;
+        const mod = i % 4;
+        let r = (mod === 1 || mod === 2) ? rOuter : rRoot;
+        const ptTop = gearPt(r, step, gearThick / 2);
+        const ptBot = gearPt(r, step, -gearThick / 2);
+        svgHtml += `<line x1="${ptTop.x}" y1="${ptTop.y}" x2="${ptBot.x}" y2="${ptBot.y}" stroke="${color}" stroke-width="1.4"/>`;
+      }
+
+      svgHtml += `
+        <path d="${topPath}" fill="none" stroke="${color}" stroke-width="2.0"/>
+
+        <ellipse cx="${cx}" cy="${cy - (gearThick/2 * scale)}" rx="${rHub * scale}" ry="${rHub * scale * tilt}" 
+                 fill="none" stroke="${color}" stroke-width="1.8"/>
+
+        <ellipse cx="${cx}" cy="${cy - (gearThick/2 * scale)}" rx="${rShaft * scale}" ry="${rShaft * scale * tilt}" 
+                 fill="none" stroke="${color}" stroke-width="1.6"/>
+        <rect x="${cx - 4 * scale}" y="${cy - (gearThick/2 * scale) - (rShaft + 4) * scale * tilt}" 
+              width="${8 * scale}" height="${7 * scale}" fill="${color}" opacity="0.8"/>
+      `;
+
+      for (let a = 0; a < 360; a += 90) {
+        const sp1 = gearPt(rShaft + 4, a, gearThick / 2);
+        const sp2 = gearPt(rHub - 2, a, gearThick / 2);
+        const sp3 = gearPt(rHub, a + 15, gearThick / 2);
+        const sp4 = gearPt(rRoot - 4, a + 15, gearThick / 2);
+        svgHtml += `
+          <line x1="${sp1.x}" y1="${sp1.y}" x2="${sp2.x}" y2="${sp2.y}" stroke="${color}" stroke-width="2.2"/>
+          <line x1="${sp3.x}" y1="${sp3.y}" x2="${sp4.x}" y2="${sp4.y}" stroke="${color}" stroke-width="2.4" stroke-linecap="round"/>
+        `;
+      }
+
+      const dimX = cx + (rOuter * scale) + 24;
+      svgHtml += `
+        <g stroke="${color}" opacity="0.85">
+          <line x1="${dimX}" y1="${cy - (gearThick/2 * scale)}" x2="${dimX}" y2="${cy + (gearThick/2 * scale)}" stroke-width="1.2"/>
+          <line x1="${dimX - 6}" y1="${cy - (gearThick/2 * scale)}" x2="${dimX + 6}" y2="${cy - (gearThick/2 * scale)}" stroke-width="1.2"/>
+          <line x1="${dimX - 6}" y1="${cy + (gearThick/2 * scale)}" x2="${dimX + 6}" y2="${cy + (gearThick/2 * scale)}" stroke-width="1.2"/>
+          <text x="${dimX + 8}" y="${cy + 4}" fill="${color}" font-size="10.5" font-weight="bold" font-family="monospace">T:${gearThick}mm</text>
+        </g>
+        <text x="20" y="340" fill="${color}" font-size="10.5" font-family="monospace" opacity="0.9">INVOLUTE SPUR GEAR / MACHINERY CAD</text>
+        <text x="20" y="355" fill="${color}" font-size="9" font-family="monospace" opacity="0.5">MODULE 4.0 | PRESSURE ANGLE 20°</text>
+      `;
+
+      return svgHtml;
+    }
+
+    // 3. GENERATE SINE SVG
+    function generateSineSVG(rotDeg, tiltDeg, scale, cycles, themeColor, cyPos) {
+      const cx = 300, cy = cyPos;
+      const rad = (rotDeg * Math.PI) / 180;
+      const tilt = Math.sin((tiltDeg * Math.PI) / 180);
+
+      function project3D(x, y, z) {
+        const cosR = Math.cos(rad);
+        const sinR = Math.sin(rad);
+        const rotX = (x * cosR - y * sinR) * scale;
+        const rotY = (x * sinR + y * cosR) * scale;
+        return {
+          px: cx + rotX,
+          py: cy + (rotY * tilt) - (z * scale)
+        };
+      }
+
+      const lengthX = 280, amp = 65;
+      const phases = [
+        { name: "Phase A (L1)", color: "#ff4d4d", offsetDeg: 0,   yTrack: -40 },
+        { name: "Phase B (L2)", color: "#d97706", offsetDeg: 120, yTrack: 0 },
+        { name: "Phase C (L3)", color: "#0284c7", offsetDeg: 240, yTrack: 40 }
+      ];
+
+      let svgHtml = `
+        <defs>
+          <pattern id="gridSine_${cyPos}" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="${themeColor}" stroke-opacity="0.05" stroke-width="0.8"/>
+          </pattern>
+        </defs>
+        <rect width="600" height="370" fill="url(#gridSine_${cyPos})"/>
+
+        <g stroke="${themeColor}" stroke-opacity="0.2" stroke-width="1">
+      `;
+
+      for (let y = -60; y <= 60; y += 40) {
+        const p1 = project3D(-lengthX, y, 0);
+        const p2 = project3D(lengthX, y, 0);
+        svgHtml += `<line x1="${p1.px}" y1="${p1.py}" x2="${p2.px}" y2="${p2.py}" stroke-dasharray="3 3"/>`;
+      }
+      for (let x = -lengthX; x <= lengthX; x += 70) {
+        const p1 = project3D(x, -60, 0);
+        const p2 = project3D(x, 60, 0);
+        svgHtml += `<line x1="${p1.px}" y1="${p1.py}" x2="${p2.px}" y2="${p2.py}" stroke-dasharray="3 3"/>`;
+      }
+      svgHtml += `</g>`;
+
+      const zBot = project3D(0, 0, -amp - 15);
+      const zTop = project3D(0, 0, amp + 15);
+      svgHtml += `
+        <line x1="${zBot.px}" y1="${zBot.py}" x2="${zTop.px}" y2="${zTop.py}" stroke="${themeColor}" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="4 2"/>
+        <text x="${zTop.px + 6}" y="${zTop.py - 4}" fill="${themeColor}" font-size="9" font-family="monospace" opacity="0.6">+Vpk</text>
+        <text x="${zBot.px + 6}" y="${zBot.py + 10}" fill="${themeColor}" font-size="9" font-family="monospace" opacity="0.6">-Vpk</text>
+      `;
+
+      phases.forEach(ph => {
+        let path3D = '', groundShadow = '';
+        const samples = 140;
+
+        for (let i = 0; i <= samples; i++) {
+          const t = i / samples;
+          const x = -lengthX + (t * 2 * lengthX);
+          const theta = (t * cycles * 2 * Math.PI) + (ph.offsetDeg * Math.PI / 180);
+          const z = amp * Math.sin(theta);
+
+          const pt = project3D(x, ph.yTrack, z);
+          const ptGround = project3D(x, ph.yTrack, 0);
+
+          path3D += `${i === 0 ? 'M' : 'L'} ${pt.px},${pt.py} `;
+          groundShadow += `${i === 0 ? 'M' : 'L'} ${ptGround.px},${ptGround.py} `;
+
+          if (i % 14 === 0) {
+            svgHtml += `
+              <line x1="${pt.px}" y1="${pt.py}" x2="${ptGround.px}" y2="${ptGround.py}" stroke="${ph.color}" stroke-width="0.9" opacity="0.5" stroke-dasharray="2 2"/>
+              <circle cx="${pt.px}" cy="${pt.py}" r="2" fill="${ph.color}"/>
+            `;
+          }
+        }
+
+        svgHtml += `<path d="${groundShadow}" fill="none" stroke="${ph.color}" stroke-width="1" stroke-dasharray="2 3" opacity="0.4"/>`;
+        svgHtml += `<path d="${path3D}" fill="none" stroke="${ph.color}" stroke-width="2.2" stroke-linecap="round"/>`;
+      });
+
+      const labelA = project3D(lengthX + 15, -40, 0);
+      const labelB = project3D(lengthX + 15, 0, 0);
+      const labelC = project3D(lengthX + 15, 40, 0);
+
+      svgHtml += `
+        <text x="${labelA.px}" y="${labelA.py + 4}" fill="#ff4d4d" font-size="10" font-weight="bold" font-family="monospace">L1 (0°)</text>
+        <text x="${labelB.px}" y="${labelB.py + 4}" fill="#d97706" font-size="10" font-weight="bold" font-family="monospace">L2 (120°)</text>
+        <text x="${labelC.px}" y="${labelC.py + 4}" fill="#0284c7" font-size="10" font-weight="bold" font-family="monospace">L3 (240°)</text>
+
+        <text x="20" y="340" fill="${themeColor}" font-size="10.5" font-family="monospace" opacity="0.9">3-PHASE AC ALTERNATING VOLTAGE</text>
+        <text x="20" y="355" fill="${themeColor}" font-size="9" font-family="monospace" opacity="0.5">HARMONIC VECTOR MATRIX | 120° PHASE DISPLACEMENT</text>
+      `;
+
+      return svgHtml;
+    }
+
+    // 4. GENERATE 3D NODE SVG
+    function generateNodeSVG(rotDeg, tiltDeg, scale, strutLen, color, cyPos) {
+      const cx = 300, cy = cyPos;
+      const rad = (rotDeg * Math.PI) / 180;
+      const tilt = Math.sin((tiltDeg * Math.PI) / 180);
+
+      function project3D(x, y, z) {
+        const cosR = Math.cos(rad);
+        const sinR = Math.sin(rad);
+        const rotX = (x * cosR - y * sinR) * scale;
+        const rotY = (x * sinR + y * cosR) * scale;
+        return {
+          px: cx + rotX,
+          py: cy + (rotY * tilt) - (z * scale)
+        };
+      }
+
+      const hubR = 40;
+      let svgHtml = `
+        <defs>
+          <pattern id="gridNode_${cyPos}" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="${color}" stroke-opacity="0.05" stroke-width="0.8"/>
+          </pattern>
+        </defs>
+        <rect width="600" height="370" fill="url(#gridNode_${cyPos})"/>
+
+        <line x1="${cx}" y1="35" x2="${cx}" y2="350" stroke="${color}" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4 4"/>
+        <line x1="80" y1="${cy}" x2="520" y2="${cy}" stroke="${color}" stroke-opacity="0.1" stroke-width="1" stroke-dasharray="2 2"/>
+      `;
+
+      const axes = [
+        { dir: [1, 0, 0] }, { dir: [-1, 0, 0] },
+        { dir: [0, 1, 0] }, { dir: [0, -1, 0] },
+        { dir: [0, 0, 1] }, { dir: [0, 0, -1] }
+      ];
+
+      svgHtml += `<g stroke="${color}" stroke-width="0.8" stroke-dasharray="2 3" opacity="0.35">`;
+      for (let i = 0; i < 4; i++) {
+        const next = (i + 1) % 4;
+        const p1 = project3D(axes[i].dir[0] * strutLen, axes[i].dir[1] * strutLen, 0);
+        const p2 = project3D(axes[next].dir[0] * strutLen, axes[next].dir[1] * strutLen, 0);
+        const pTop = project3D(0, 0, strutLen);
+        const pBot = project3D(0, 0, -strutLen);
+
+        svgHtml += `<line x1="${p1.px}" y1="${p1.py}" x2="${p2.px}" y2="${p2.py}"/>`;
+        svgHtml += `<line x1="${p1.px}" y1="${p1.py}" x2="${pTop.px}" y2="${pTop.py}"/>`;
+        svgHtml += `<line x1="${p1.px}" y1="${p1.py}" x2="${pBot.px}" y2="${pBot.py}"/>`;
+      }
+      svgHtml += `</g>`;
+
+      axes.forEach(ax => {
+        const pStart = project3D(ax.dir[0] * hubR, ax.dir[1] * hubR, ax.dir[2] * hubR);
+        const pEnd = project3D(ax.dir[0] * strutLen, ax.dir[1] * strutLen, ax.dir[2] * strutLen);
+        
+        svgHtml += `<line x1="${pStart.px}" y1="${pStart.py}" x2="${pEnd.px}" y2="${pEnd.py}" stroke="${color}" stroke-width="3" stroke-linecap="round"/>`;
+        svgHtml += `<line x1="${pStart.px}" y1="${pStart.py}" x2="${pEnd.px}" y2="${pEnd.py}" stroke="#fff" stroke-width="1" stroke-dasharray="4 2"/>`;
+
+        svgHtml += `
+          <circle cx="${pEnd.px}" cy="${pEnd.py}" r="${6 * scale}" fill="none" stroke="${color}" stroke-width="1.8"/>
+          <circle cx="${pEnd.px}" cy="${pEnd.py}" r="${2 * scale}" fill="${color}"/>
+        `;
+      });
+
+      const ringSteps = 36;
+      let eqPath = '';
+      for (let i = 0; i <= ringSteps; i++) {
+        const theta = (i / ringSteps) * Math.PI * 2;
+        const pt = project3D(hubR * Math.cos(theta), hubR * Math.sin(theta), 0);
+        eqPath += `${i === 0 ? 'M' : 'L'} ${pt.px},${pt.py} `;
+      }
+      svgHtml += `<path d="${eqPath}" fill="none" stroke="${color}" stroke-width="2"/>`;
+
+      let m1Path = '', m2Path = '';
+      for (let i = 0; i <= ringSteps; i++) {
+        const phi = (i / ringSteps) * Math.PI * 2;
+        const pt1 = project3D(hubR * Math.cos(phi), 0, hubR * Math.sin(phi));
+        const pt2 = project3D(0, hubR * Math.cos(phi), hubR * Math.sin(phi));
+        m1Path += `${i === 0 ? 'M' : 'L'} ${pt1.px},${pt1.py} `;
+        m2Path += `${i === 0 ? 'M' : 'L'} ${pt2.px},${pt2.py} `;
+      }
+      svgHtml += `
+        <path d="${m1Path}" fill="none" stroke="${color}" stroke-width="1.4" stroke-dasharray="3 2" opacity="0.8"/>
+        <path d="${m2Path}" fill="none" stroke="${color}" stroke-width="1.4" stroke-dasharray="3 2" opacity="0.8"/>
+        <circle cx="${cx}" cy="${cy}" r="${hubR * scale}" fill="none" stroke="${color}" stroke-width="1.2" stroke-opacity="0.4"/>
+        <circle cx="${cx}" cy="${cy}" r="${3 * scale}" fill="${color}"/>
+      `;
+
+      const pDimEnd = project3D(strutLen, 0, 0);
+      const dimY = cy + 55 * scale;
+      svgHtml += `
+        <g stroke="${color}" opacity="0.85">
+          <line x1="${cx}" y1="${dimY}" x2="${pDimEnd.px}" y2="${dimY}" stroke-width="1.2"/>
+          <line x1="${cx}" y1="${dimY - 5}" x2="${cx}" y2="${dimY + 5}" stroke-width="1.2"/>
+          <line x1="${pDimEnd.px}" y1="${dimY - 5}" x2="${pDimEnd.px}" y2="${dimY + 5}" stroke-width="1.2"/>
+          <text x="${(cx + pDimEnd.px)/2 - 18}" y="${dimY - 6}" fill="${color}" font-size="10" font-weight="bold" font-family="monospace">L:${Math.round(strutLen)}mm</text>
+        </g>
+        <text x="20" y="340" fill="${color}" font-size="10.5" font-family="monospace" opacity="0.9">3D STRUCTURAL TRUSS NODE (SPACE FRAME)</text>
+        <text x="20" y="355" fill="${color}" font-size="9" font-family="monospace" opacity="0.5">ORTHOGONAL 6-AXIS STRUT & SPHERICAL HUB</text>
+      `;
+
+      return svgHtml;
+    }
+
+    // ==========================================
+    // 5. GENERATE HYPERBOLOID & DUAL-HELIX SVG (ใหม่! คณิตศาสตร์ขั้นเทพ)
+    // ==========================================
+    function generateHyperboloidSVG(rotDeg, tiltDeg, scale, waistR, color, cyPos) {
+      const cx = 300, cy = cyPos;
+      const rad = (rotDeg * Math.PI) / 180;
+      const tilt = Math.sin((tiltDeg * Math.PI) / 180);
+
+      function project3D(x, y, z) {
+        const cosR = Math.cos(rad);
+        const sinR = Math.sin(rad);
+        const rotX = (x * cosR - y * sinR) * scale;
+        const rotY = (x * sinR + y * cosR) * scale;
+        return {
+          px: cx + rotX,
+          py: cy + (rotY * tilt) - (z * scale)
+        };
+      }
+
+      const totalH = 115;     // ความสูงครึ่งบน-ล่าง (-115 ถึง +115)
+      const topR = 95;        // รัศมีปากขอบบนและล่าง
+      const numLines = 24;    // จำนวนเส้นตรงสร้างพื้นผิว (Ruled Struts)
+      const twistAngle = 110; // มุมบิดเกลียว (องศา)
+
+      let svgHtml = `
+        <defs>
+          <pattern id="gridHyp_${cyPos}" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="${color}" stroke-opacity="0.05" stroke-width="0.8"/>
+          </pattern>
+        </defs>
+        <rect width="600" height="370" fill="url(#gridHyp_${cyPos})"/>
+
+        <!-- แกนศูนย์กลางสมมาตร Z-Axis -->
+        <line x1="${cx}" y1="35" x2="${cx}" y2="350" stroke="${color}" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="4 4"/>
+        <line x1="80" y1="${cy}" x2="520" y2="${cy}" stroke="${color}" stroke-opacity="0.1" stroke-width="1" stroke-dasharray="2 2"/>
+      `;
+
+      // วาดวงแหวนขอบ 3 ระดับ (ขอบล่าง, เอวคอดกลาง, ขอบบน)
+      function drawRing(r, z, strokeW, dash, op) {
+        const steps = 36;
+        let pStr = '';
+        for (let i = 0; i <= steps; i++) {
+          const a = (i / steps) * Math.PI * 2;
+          const pt = project3D(r * Math.cos(a), r * Math.sin(a), z);
+          pStr += `${i === 0 ? 'M' : 'L'} ${pt.px},${pt.py} `;
+        }
+        svgHtml += `<path d="${pStr}" fill="none" stroke="${color}" stroke-width="${strokeW}" stroke-dasharray="${dash}" opacity="${op}"/>`;
+      }
+
+      drawRing(topR, totalH, 2.0, 'none', 0.9);   // ขอบบน
+      drawRing(topR, -totalH, 2.0, 'none', 0.9);  // ขอบล่าง
+      drawRing(waistR, 0, 1.4, '3 2', 0.7);       // วงคอดกลาง (Throat Circle)
+
+      // วาดเส้นตรงสร้างพื้นผิวโค้ง (Ruled Generator Lines) - ไขว้สองทิศทาง
+      for (let i = 0; i < numLines; i++) {
+        const angleBot = (360 / numLines) * i;
+        
+        // ตระกูลเส้นเกลียวตามเข็ม (Family 1: Right-handed Struts)
+        const pBot1 = project3D(topR * Math.cos((angleBot * Math.PI)/180), topR * Math.sin((angleBot * Math.PI)/180), -totalH);
+        const pTop1 = project3D(topR * Math.cos(((angleBot + twistAngle) * Math.PI)/180), topR * Math.sin(((angleBot + twistAngle) * Math.PI)/180), totalH);
+        svgHtml += `<line x1="${pBot1.px}" y1="${pBot1.py}" x2="${pTop1.px}" y2="${pTop1.py}" stroke="${color}" stroke-width="1.3" opacity="0.6"/>`;
+
+        // ตระกูลเส้นเกลียวทวนเข็ม (Family 2: Left-handed Struts)
+        const pTop2 = project3D(topR * Math.cos(((angleBot - twistAngle) * Math.PI)/180), topR * Math.sin(((angleBot - twistAngle) * Math.PI)/180), totalH);
+        svgHtml += `<line x1="${pBot1.px}" y1="${pBot1.py}" x2="${pTop2.px}" y2="${pTop2.py}" stroke="${color}" stroke-width="1.3" opacity="0.6"/>`;
+      }
+
+      // วาดเกลียวคู่ Archimedean Dual-Helix เรืองแสงรอบผิวไฮเพอร์โบลา
+      const helixSamples = 90;
+      let hPathA = '', hPathB = '';
+      for (let i = 0; i <= helixSamples; i++) {
+        const t = (i / helixSamples) * 2 - 1; // -1 ถึง +1
+        const z = t * totalH;
+        // คำนวณรัศมีตามสมการ Hyperbola: r(z) = sqrt(waistR^2 + (topR^2 - waistR^2) * t^2)
+        const rCurrent = Math.sqrt(waistR * waistR + (topR * topR - waistR * waistR) * (t * t));
+        const thetaA = t * Math.PI * 2.5;
+        const thetaB = thetaA + Math.PI;
+
+        const ptA = project3D(rCurrent * Math.cos(thetaA), rCurrent * Math.sin(thetaA), z);
+        const ptB = project3D(rCurrent * Math.cos(thetaB), rCurrent * Math.sin(thetaB), z);
+
+        hPathA += `${i === 0 ? 'M' : 'L'} ${ptA.px},${ptA.py} `;
+        hPathB += `${i === 0 ? 'M' : 'L'} ${ptB.px},${ptB.py} `;
+      }
+
+      svgHtml += `
+        <path d="${hPathA}" fill="none" stroke="#ff4d4d" stroke-width="2.6" stroke-linecap="round" opacity="0.85"/>
+        <path d="${hPathB}" fill="none" stroke="#ffb703" stroke-width="2.6" stroke-linecap="round" opacity="0.85"/>
+      `;
+
+      // เส้นวัดระดับมิติ (Dimension Line)
+      const pWaistRight = project3D(waistR, 0, 0);
+      const dimX = cx + (topR * scale) + 24;
+      svgHtml += `
+        <g stroke="${color}" opacity="0.85">
+          <line x1="${dimX}" y1="${cy - totalH * scale}" x2="${dimX}" y2="${cy + totalH * scale}" stroke-width="1.2"/>
+          <line x1="${dimX - 6}" y1="${cy - totalH * scale}" x2="${dimX + 6}" y2="${cy - totalH * scale}" stroke-width="1.2"/>
+          <line x1="${dimX - 6}" y1="${cy + totalH * scale}" x2="${dimX + 6}" y2="${cy + totalH * scale}" stroke-width="1.2"/>
+          <text x="${dimX + 8}" y="${cy + 4}" fill="${color}" font-size="10" font-weight="bold" font-family="monospace">H:${totalH * 2}mm</text>
+        </g>
+        <text x="20" y="340" fill="${color}" font-size="10.5" font-family="monospace" opacity="0.9">RULED HYPERBOLOID & DUAL-HELIX TOWER</text>
+        <text x="20" y="355" fill="${color}" font-size="9" font-family="monospace" opacity="0.5">MATH: x²/a² + y²/b² - z²/c² = 1 | DOUBLY RULED SURFACE</text>
+      `;
+
+      return svgHtml;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      updateRender();
+    });
+  </script>
+</body>
+</html>
